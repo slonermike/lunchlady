@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-const configure = require('./configure');
+const configure = require('./commands/configure');
+const Configuration = require('./modules/configuration');
+const Log = require('./utils/Log');
 
 let instructions = {};
 
 const printInstructions = function () {
-    console.log("Usage: 'lunchlady <command>', where <command> is one of:");
+    Log.log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
     for (let key in instructions) {
         let description = instructions[key].description ? ' - ' + instructions[key].description : '';
-        console.log('\t' + key + description);
+        Log.log('\t' + key + description);
     }
 }
 
@@ -27,4 +29,6 @@ if (!command || !instructions[command]) {
     command = 'help';
 }
 
-instructions[command].cmd();
+Configuration.loadValues()
+    .catch((msg) => Log.log(`No stored configuration available -- run 'lunchlady configure'`))
+    .then(() => instructions[command].cmd());
