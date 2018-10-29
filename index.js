@@ -30,5 +30,9 @@ if (!command || !instructions[command]) {
 }
 
 Configuration.loadValues()
-    .catch((msg) => Log.log(`No stored configuration available -- run 'lunchlady configure'`))
-    .then(() => instructions[command].cmd());
+    .catch((_msg) => {
+        if (command != 'configure')
+            Log.log(`No stored configuration available -- run 'lunchlady configure'`)}
+    ).then(() => {
+        instructions[command].cmd()
+    });
