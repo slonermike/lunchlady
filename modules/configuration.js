@@ -3,7 +3,8 @@ const FileUtils = require('../utils/File');
 const values = {
     configFolder: './config/',
     configFile: "config.json",
-    contentFolder: './content/'
+    contentFolder: './content/',
+    contentFile: 'index.json'
 }
 
 /**

@@ -4,99 +4,101 @@
  * But not like, funtional programming functional.
  * Just regular functional.
  */
-const fs = require('fs');
 const inquirer = require('inquirer');
 
+const Configuration = require('../modules/configuration');
+const File = require('../utils/File');
 const Log = require('../utils/Log');
 
-const contentFolder = "./content/";
-const jsonFile = "index.json";
 const supportedFileTypes = (/\.(htm|html)$/i);
 
-// Default data structure.
-var jsonStructure = {
-    entries: []
-};
-
-// TODO: convert this to be more async/promise-y.
-//
 const addEntry = function() {
-    // Make the content directory if it doesn't exist.
-    if (!fs.existsSync(contentFolder)) {
-        fs.mkdirSync(contentFolder);
-    }
+    const contentFolder = Configuration.getValue('contentFolder');
+    const contentFile = contentFolder + Configuration.getValue('contentFile');
 
-    // Read the content file if it exists.
-    if (fs.existsSync(contentFolder + jsonFile)) {
-        var jsonText = fs.readFileSync(contentFolder + jsonFile);
-        jsonStructure = JSON.parse(jsonText);
-    }
+    // Default structure of file data.
+    let existingData = {
+        entries: []
+    };
 
-    // Filter out non-html and existing content.
-    const existingStuff = fs.readdirSync(contentFolder);
-    const htmlFiles = existingStuff.filter((filename) => {
-        const matches = filename.match(supportedFileTypes);
-        if (!matches || matches.length === 0) {
-            return false;
-        }
+    let newFiles = [];
+    File.promiseDirectoryExistence(contentFolder)
+        .then(() => {
+            return File.promiseFileExistence(contentFile)
+                .then(File.readJSON)
+                .then((data) => existingData = data)
+                .catch(() => {
+                    Log.log(`${contentFile} does not yet exist.`);
+                });
+        })
+        .then(() => {
+            // Filter to only htm/html files.
+            return File.getFilesOfType(contentFolder, supportedFileTypes)
+        })
+        .then((files) => {
+            // Filter out files we've already assigned to an entry.
+            newFiles = files.filter((filename) => {
+                // Possible optimization.  O(n^2)
+                if (existingData.entries) {
+                    for (entry of existingData.entries) {
+                        if (entry.file === filename) {
+                            return false;
+                        }
+                    }
+                }
 
-        // Possible optimization.  O(n^2)
-        for (entry of jsonStructure.entries) {
-            if (entry.file === filename) {
-                return false;
+                return true;
+            });
+
+            if (newFiles.length === 0) {
+                Log.log(`No new entries found in content folder: ${contentFolder}`)
+                return;
             }
-        }
 
-        return true;
-    });
+            // Questions for setting up a blog entry.
+            var addEntryQuestions = [
+                {
+                    type: 'list',
+                    name: 'filename',
+                    choices: newFiles,
+                    message: 'Which file would you like to add to your blog?'
+                },
+                {
+                    type: 'input',
+                    name: 'title',
+                    message: "What is the title of your blog entry?",
+                },
+                {
+                    type: 'checkbox',
+                    name: 'tags',
+                    choices: [
+                        "GameDev",
+                        "Parenting",
+                        "WebDev",
+                        "Javascript",
+                        "Unity"
+                    ],
+                    message: "What tags would you like to apply?"
+                }
+            ];
 
-    // Bail if no new content available.
-    if (!htmlFiles || htmlFiles.length === 0) {
-        Log.log("No new html files found in content folder: " + contentFolder);
-        process.exit(1);
-    }
+            const applyAndWrite = function(answers) {
+                const filename = answers['filename'];
+                const newEntry = {
+                    file: filename,
+                    title: answers['title'],
+                    tags: answers['tags']
+                }
+                existingData.entries.push(newEntry);
+                return File.writeJSON(contentFile, existingData);
+            }
 
-    // Questions for setting up a blog entry.
-    var addEntryQuestions = [
-        {
-            type: 'list',
-            name: 'filename',
-            choices: htmlFiles,
-            message: 'Which file would you like to add to your blog?'
-        },
-        {
-            type: 'input',
-            name: 'title',
-            message: "What is the title of your blog entry?",
-        },
-        {
-            type: 'checkbox',
-            name: 'tags',
-            choices: [
-                "GameDev",
-                "Parenting",
-                "WebDev",
-                "Javascript",
-                "Unity"
-            ],
-            message: "What tags would you like to apply?"
-        }
-    ]
-
-    // Finalize.
-    inquirer.prompt(addEntryQuestions).then(answers => {
-        const filename = answers['filename'];
-        const newEntry = {
-            file: filename,
-            title: answers['title'],
-            tags: answers['tags']
-        }
-        jsonStructure.entries.push(newEntry);
-        Log.log("Writing: \n" + JSON.stringify(jsonStructure));
-
-        // Store new JSON.
-        fs.writeFileSync(contentFolder + jsonFile, JSON.stringify(jsonStructure));
-    })
+            return inquirer.prompt(addEntryQuestions)
+                .then(applyAndWrite)
+                .then(() => Log.log("Content update successful."))
+                .catch(Log.log);
+        })
+        .catch(Log.log);
 }
 
 module.exports = addEntry;

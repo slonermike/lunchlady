@@ -43,6 +43,30 @@ const promiseFileExistence = function(filename) {
     });
 }
 
+/**
+ * Retrieve files from a directory for which the filename matches the provided
+ * regular expression.
+ *
+ * @param {String} directory Directory in which to look for files.
+ * @param {Regex} fileTypeRegex Regular experession defining accepable entries.
+ */
+const getFilesOfType = function(directory, fileTypeRegex) {
+    return new Promise((resolve, reject) => {
+        fs.readdir(directory, (err, files) => {
+            if (err) {
+                reject(err);
+            } else {
+                // Filter out files that don't match the regex.
+                const finalList = files.filter((filename) => {
+                    const matches = filename.match(fileTypeRegex);
+                    return matches && matches.length > 0;
+                });
+                resolve(finalList);
+            }
+        })
+    });
+}
+
 const mkdir = function (dirname) {
     return new Promise((resolve, reject) => {
         fs.mkdir(dirname, (err) => {
@@ -80,6 +104,7 @@ const writeJSON = function (filepath, data) {
 
 module.exports = {
     exists,
+    getFilesOfType,
     mkdir,
     promiseDirectoryExistence,
     promiseFileExistence,

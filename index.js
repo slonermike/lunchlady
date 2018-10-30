@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const addEntry = require('./commands/addEntry');
 const configure = require('./commands/configure');
 const Configuration = require('./modules/configuration');
 const Log = require('./utils/Log');
@@ -14,6 +15,10 @@ const printInstructions = function () {
 }
 
 instructions = {
+    'add': {
+        cmd: addEntry,
+        description: 'Create a new blog entry from the existing html files in the content folder'
+    },
     'configure': {
         cmd: configure,
         description: 'Configure the local source and server destination of your blog files.'
