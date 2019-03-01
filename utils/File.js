@@ -17,7 +17,7 @@ const promiseDirectoryExistence = function(dirname) {
     return exists(dirname).then((exists) => {
         return new Promise((resolve, reject) => {
             if (exists) {
-                resolve();
+                resolve(dirname);
             } else {
                 mkdir(dirname).then(resolve).catch(reject)
             }
@@ -73,7 +73,7 @@ const mkdir = function (dirname) {
             if (err)
                 reject(dirname)
             else
-                resolve()
+                resolve(dirname)
         });
     });
 }

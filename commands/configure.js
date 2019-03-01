@@ -11,13 +11,13 @@ const configure = function () {
 
     // Make the directory if it doesn't exist.
     FileUtils.promiseDirectoryExistence(configFolder).then(() => {
-        const contentFolder = Configuration.getValue('contentFolder');
+        const htmlFolder = Configuration.getValue('htmlFolder');
 
         var configQuestions = [
             {
-                name: 'contentFolder',
+                name: 'htmlFolder',
                 type: 'input',
-                default: contentFolder
+                default: htmlFolder
             }
         ];
 

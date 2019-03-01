@@ -4,6 +4,10 @@ const values = {
     configFolder: './config/',
     configFile: "config.json",
     contentFolder: './sloppy-joe/src/content/',
+    htmlFolder: null,
+    sloppyJoeFolder: './sloppy-joe/',
+    sloppyJoeOrigin: 'https://github.com/slonermike/sloppy-joe.git',
+    sloppyJoeBranch: 'master',
     contentFile: 'index.json'
 }
 

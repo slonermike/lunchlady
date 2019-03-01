@@ -12,6 +12,7 @@
     "lunchlady": "./index.js"
   },
   "dependencies": {
-    "inquirer": "^6.2.0"
+    "inquirer": "^6.2.0",
+    "nodegit": "^0.24.1"
   }
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const getsloppy = require('./commands/getsloppy');
 const addEntry = require('./commands/addEntry');
 const configure = require('./commands/configure');
 const Configuration = require('./modules/configuration');
@@ -15,6 +16,10 @@ const printInstructions = function () {
 }
 
 instructions = {
+    'get-sloppy': {
+        cmd: getsloppy,
+        description: 'Initialize the sloppy joe repo so that we can see what we\'re working on.'
+    },
     'add': {
         cmd: addEntry,
         description: 'Create a new blog entry from the existing html files in the content folder'
