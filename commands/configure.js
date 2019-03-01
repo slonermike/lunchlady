@@ -22,7 +22,7 @@ const configure = function () {
         ];
 
         // TODO: if input folder has alphanumeric at ends, add ./ at beginning and / at end.
-        // TODO: make sure we have valid config folder provided.
+        // TODO: make sure we have valid HTML folder provided.
         return inquirer.prompt(configQuestions)
             .then(Configuration.writeValues)
             .catch(err => Log.log(err));

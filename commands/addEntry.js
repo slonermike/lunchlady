@@ -15,6 +15,7 @@ const supportedFileTypes = (/\.(htm|html)$/i);
 const addEntry = function() {
     const contentFolder = Configuration.getValue('contentFolder');
     const contentFile = contentFolder + Configuration.getValue('contentFile');
+    const htmlFolder = Configuration.getValue('htmlFolder');
 
     // Default structure of file data.
     let existingData = {
@@ -33,7 +34,7 @@ const addEntry = function() {
         })
         .then(() => {
             // Filter to only htm/html files.
-            return File.getFilesOfType(contentFolder, supportedFileTypes)
+            return File.getFilesOfType(htmlFolder, supportedFileTypes)
         })
         .then((files) => {
             // Filter out files we've already assigned to an entry.
