@@ -31,7 +31,13 @@ const createOrRetrieveRepo = function(directory, remoteUrl) {
  */
 const getLatest = function(repo, branch) {
     return new Promise((resolve, reject) => {
-        repo.checkoutBranch(branch).then(() => repo.fetch('origin')).then(resolve, reject);
+        repo.checkoutBranch(branch).then(() => {
+            console.log(`Updating from branch: ${branch}`)
+            return repo.fetch('origin');
+        }).then(() => {
+            console.log("Complete");
+            resolve();
+        }, reject);
     });
 }
 
