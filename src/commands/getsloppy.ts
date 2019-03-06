@@ -1,6 +1,6 @@
 import * as Configuration from '../modules/configuration';
 import * as FileUtils from '../utils/File';
-import Log from '../utils/Log';
+import { log } from '../utils/Log';
 import { Repository, Clone, Error as GitError } from 'nodegit';
 
 /**
@@ -9,7 +9,7 @@ import { Repository, Clone, Error as GitError } from 'nodegit';
  * @param {string} directory Directory where the repo should live locally.
  * @param {string} remoteUrl URL from which we retrieve origin.
  */
-function createOrRetrieveRepo(directory: string, remoteUrl: string): PromiseLike<Repository> {
+function createOrRetrieveRepo(directory: string, remoteUrl: string): Promise<Repository> {
     return new Promise((resolve, reject) => {
         return Repository.open(directory).then((repo) => {
             resolve(repo);
@@ -63,8 +63,8 @@ export default function getsloppy() {
         .then((repo) => getLatest(repo, branch))
         .catch(err => {
             // Something other than missing repo happened.  Report it raw.
-            Log.log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${sloppyJoeFolder}`);
-            Log.log(err);
+            log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${sloppyJoeFolder}`);
+            log(err);
         });
 }
 

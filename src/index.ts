@@ -4,7 +4,7 @@ import * as addEntry from './commands/addEntry';
 import * as manage from './commands/manage';
 import * as configure from './commands/configure';
 import * as Configuration from './modules/configuration';
-import Log from './utils/Log';
+import { log } from './utils/Log';
 
 class CLIInstruction {
     cmd: () => void;
@@ -13,10 +13,10 @@ class CLIInstruction {
 let instructions: Record<string, CLIInstruction> = {};
 
 const printInstructions = function () {
-    Log.log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
+    log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
     for (let key in instructions) {
         let description = instructions[key].description ? ' - ' + instructions[key].description : '';
-        Log.log('\t' + key + description);
+        log('\t' + key + description);
     }
 }
 
@@ -51,7 +51,7 @@ if (!command || !instructions[command]) {
 Configuration.loadValues()
     .catch((_msg) => {
         if (command != 'configure')
-            Log.log(`No stored configuration available -- run 'lunchlady configure'`)}
+            log(`No stored configuration available -- run 'lunchlady configure'`)}
     ).then(() => {
         instructions[command].cmd();
-    }).catch((err) => Log.log(`Error executing \`${command}\` instruction: ${err}`));
+    }).catch((err) => log(`Error executing \`${command}\` instruction: ${err}`));
