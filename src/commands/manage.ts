@@ -1,24 +1,47 @@
-const inquirer = require('inquirer');
+import { registerPrompt, prompt, Question } from 'inquirer';
 
-const Configuration = require('../modules/configuration');
-const File = require('../utils/File');
-const Log = require('../utils/Log');
+import { getValue } from '../modules/configuration';
+import { log } from '../utils/Log';
+import { promiseFileExistence, readJSON, writeJSON } from '../utils/File';
 
 // Register the datepicker plugin for inquirer
-inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
+registerPrompt('datepicker', require('inquirer-datepicker'));
 
-const getBlogData = function(contentFile) {
-    return File.promiseFileExistence(contentFile).then(File.readJSON);
+/**
+ * Allow use of 'format' for the datepicker.
+ */
+type ManageQ = Question | {
+    format?: string[]
+};
+
+interface Blog {
+    entries: BlogEntry[];
+}
+
+interface BlogEntry {
+    file: string,
+    title: string,
+    tags: string[],
+    date: Date
+}
+
+/**
+ * Load the blog data from JSON.
+ *
+ * @param contentFile File from which to load the blog data.
+ */
+function getBlogData(contentFile: string): Promise<Blog> {
+    return promiseFileExistence(contentFile).then((filename) => readJSON(filename) as Promise<Blog>);
 }
 
 /**
  * Resolves to an updated version of the input entry.
  * Does not mutate the state of the input entry.
  *
- * @param {Object} entry Entry to be edited.
+ * @param entry Entry to be edited.
  */
-const editEntry = function(entry) {
-    const questions = [
+function editEntry(entry: BlogEntry): Promise<BlogEntry> {
+    const questions: ManageQ[] = [
         {
             type: 'input',
             name: 'title',
@@ -49,7 +72,7 @@ const editEntry = function(entry) {
         }
     ];
 
-    return inquirer.prompt(questions)
+    return prompt(questions as Question[])
         .then((answers) => {
             return {
                 file: entry.file,
@@ -64,9 +87,9 @@ const editEntry = function(entry) {
  * Allow the user to select a blog entry.
  * Resolves to the object describing the entry.
  *
- * @param {object} blogData Raw entry for the blog.
+ * @param blogData Raw entry for the blog.
  */
-const selectEntry = function(blogData) {
+function selectEntry(blogData: Blog): Promise<BlogEntry> {
     const questions = [
         {
             type: 'list',
@@ -81,7 +104,7 @@ const selectEntry = function(blogData) {
         }
     ];
 
-    return inquirer.prompt(questions).then((entry) => {
+    return prompt(questions).then((entry: {index: number}) => {
         return blogData.entries[entry.index];
     });
 }
@@ -89,10 +112,10 @@ const selectEntry = function(blogData) {
 /**
  * Add or update an entry to the blog.
  *
- * @param {object} blog Top-level blog object to update
- * @param {object} entry Entry data to write into the blog.
+ * @param blog Top-level blog object to update
+ * @param entry Entry data to write into the blog.
  */
-const updateEntry = function(blog, entry) {
+function updateEntry(blog: Blog, entry: BlogEntry): Blog {
     // Look for an existing entry using the specified filename.
     const existingIndex = blog.entries.findIndex((existingEntry) => {
         return entry.file === existingEntry.file;
@@ -110,24 +133,23 @@ const updateEntry = function(blog, entry) {
  * Let the user choose an entry to update, and update it.
  * Resolves to the updated blog object.
  *
- * @param {object} blog Blog from which the user will choose an item to update.
+ * @param blog Blog from which the user will choose an item to update.
  */
-const inputEntryUpdate = function(blog) {
+function inputEntryUpdate(blog: Blog): Promise<Blog> {
     return selectEntry(blog)
     .then(editEntry)
     .then((newEntry) => updateEntry(blog, newEntry));
 }
 
-const manage = function() {
-    const contentFolder = Configuration.getValue('contentFolder');
-    const contentFile = contentFolder + Configuration.getValue('contentFile');
+export function manage(): Promise<void> {
+    const contentFolder = getValue('contentFolder');
+    const contentFile = contentFolder + getValue('contentFile');
 
-    getBlogData(contentFile)
+    return getBlogData(contentFile)
     .then(inputEntryUpdate)
-    .then((updatedBlog) => File.writeJSON(contentFile, updatedBlog))
+    .then((updatedBlog) => writeJSON(contentFile, updatedBlog))
     .catch((err) => {
-        Log.log(`manage: ${err}`);
-    });
+        log(`manage: ${err}`);
+    }) as Promise<void>;
 }
 
-module.exports = manage;

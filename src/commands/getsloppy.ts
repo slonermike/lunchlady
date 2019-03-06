@@ -53,18 +53,18 @@ function getLatest(repo: Repository, branch: string) {
 /**
  * Command to retrieve the latest source from sloppy joe.
  */
-export default function getsloppy() {
+export function getsloppy(): Promise<void> {
     const sloppyJoeFolder = Configuration.getValue('sloppyJoeFolder');
     const remoteUrl = Configuration.getValue('sloppyJoeOrigin');
     const branch = Configuration.getValue('sloppyJoeBranch');
 
-    FileUtils.promiseDirectoryExistence(sloppyJoeFolder)
+    return FileUtils.promiseDirectoryExistence(sloppyJoeFolder)
         .then((dir) => createOrRetrieveRepo(dir, remoteUrl))
         .then((repo) => getLatest(repo, branch))
         .catch(err => {
             // Something other than missing repo happened.  Report it raw.
             log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${sloppyJoeFolder}`);
             log(err);
-        });
+        }) as Promise<void>;
 }
 

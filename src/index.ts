@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-import getsloppy from './commands/getsloppy';
+import { getsloppy } from './commands/getsloppy';
 import * as addEntry from './commands/addEntry';
-import * as manage from './commands/manage';
-import * as configure from './commands/configure';
-import * as Configuration from './modules/configuration';
+import { manage } from './commands/manage';
+import { configure } from './commands/configure';
 import { log } from './utils/Log';
+import { loadValues } from './modules/configuration';
 
-class CLIInstruction {
-    cmd: () => void;
+interface CLIInstruction {
+    // TODO: remove the () => void option and inline the cmd call in the promise chain.
+    cmd: (() => Promise<void>) | (() => void);
     description: string;
 }
 let instructions: Record<string, CLIInstruction> = {};
@@ -48,7 +49,7 @@ if (!command || !instructions[command]) {
     command = 'help';
 }
 
-Configuration.loadValues()
+loadValues()
     .catch((_msg) => {
         if (command != 'configure')
             log(`No stored configuration available -- run 'lunchlady configure'`)}

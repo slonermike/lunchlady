@@ -1,18 +1,19 @@
-const inquirer = require('inquirer');
-
-const Configuration = require('../modules/configuration');
-const FileUtils = require('../utils/File');
-const Log = require('../utils/Log');
+import * as inquirer from 'inquirer';
+import * as FileUtils from '../utils/File';
+import { log } from '../utils/Log';
+import { ValueSet } from '../modules/configuration';
+import { getValue } from '../modules/configuration';
+import { writeValues } from '../modules/configuration';
 
 /**
  * Fix the user input to be formatted more consistently.
  *
- * @param {Object} values Values as input by the user.
+ * @param values Values as input by the user.
  */
-const fixValues = function(values) {
+function fixValues(values: ValueSet): ValueSet {
     const fixedFolder = FileUtils.formatDirectory(values['htmlFolder']);
     if (fixedFolder !== values['htmlFolder']) {
-        Log.log(`Fixing directory formatting: ${values['htmlFolder']} => ${fixedFolder}`);
+        log(`Fixing directory formatting: ${values['htmlFolder']} => ${fixedFolder}`);
         values['htmlFolder'] = fixedFolder;
     }
     return values;
@@ -24,9 +25,9 @@ const fixValues = function(values) {
  * TODO: this actually just rejects if it exists.  Still need to figure out how
  * to correctly remove the existing symlink.
  *
- * @param {String} dir Directory to check.
+ * @param dir Directory to check.
  */
-const unlinkIfSymlink = function(dir) {
+function unlinkIfSymlink(dir: string): Promise<string> {
     return new Promise((resolve, reject) => {
         FileUtils.exists(dir).then((fileExists) => {
             if (!fileExists) {
@@ -36,6 +37,7 @@ const unlinkIfSymlink = function(dir) {
                     if (!isSymlink) {
                         reject(`Cannot unlink content folder which is not a symlink: ${dir}`);
                     } else {
+                        // TODO
                         reject(`Auto-unlink of content folder is not yet supported.  Delete symlink at ${dir} and run \`configure\` again`);
                     }
                 });
@@ -44,34 +46,34 @@ const unlinkIfSymlink = function(dir) {
     });
 }
 
-const configure = function () {
+export function configure(): Promise<any> {
 
-    const configFolder = Configuration.getValue('configFolder');
+    const configFolder = getValue('configFolder');
 
     // Link the directory if it doesn't exist.
-    FileUtils.promiseDirectoryExistence(configFolder).then(() => {
+    return FileUtils.promiseDirectoryExistence(configFolder).then(() => {
         var configQuestions = [
             {
                 name: 'htmlFolder',
                 type: 'input',
-                default: Configuration.getValue('htmlFolder')
+                default: getValue('htmlFolder')
             }
         ];
 
         return inquirer.prompt(configQuestions)
             .then(fixValues)
-            .then(Configuration.writeValues)
+            .then(writeValues)
             .then(() => {
-                const newHtmlFolder = Configuration.getValue('htmlFolder');
+                const newHtmlFolder = getValue('htmlFolder');
                 return FileUtils.promiseDirectoryExistence(newHtmlFolder, false)
-                    .then(() => unlinkIfSymlink(Configuration.getValue('contentFolder')))
-                    .then(() => FileUtils.symlink(newHtmlFolder, Configuration.getValue('contentFolder')))
-                    .then(() => Log.log(`Content directory LINKED -- ${Configuration.getValue('contentFolder')} => ${Configuration.getValue('htmlFolder')}`));
+                    .then(() => unlinkIfSymlink(getValue('contentFolder')))
+                    .then(() => FileUtils.symlink(newHtmlFolder, getValue('contentFolder')))
+                    .then(() => log(`Content directory LINKED -- ${getValue('contentFolder')} => ${getValue('htmlFolder')}`));
             })
-            .catch(err => Log.log(err));
+            .catch(err => log(err));
     }).catch((err) => {
-        Log.log(`Could not promise directory existence: ${err}`);
+        log(`Could not promise directory existence: ${err}`);
     });
 }
 
-module.exports = configure;
+export default configure;

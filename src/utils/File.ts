@@ -96,7 +96,7 @@ export function mkdir(dirname: string): Promise<string> {
  * Resolves to undefined.
  * @param {String} dirname Symbolic link to remove.
  */
-export function unlink(dirname): Promise<undefined> {
+export function unlink(dirname): Promise<void> {
     return new Promise((resolve, reject) => {
         fs.unlink(dirname, (err) => {
             if (err) {
@@ -151,7 +151,7 @@ export function directoryIsSymlink(dir: string): Promise<boolean> {
  *
  * @param filepath File from which we read the JSON.
  */
-export function readJSON(filepath: string): Promise<string> {
+export function readJSON(filepath: string): Promise<Record<string, any>> {
     return new Promise((resolve, reject) => {
         fs.readFile(filepath, (err, data) => {
             if (err) {
@@ -170,7 +170,7 @@ export function readJSON(filepath: string): Promise<string> {
  * @param filepath File to which the JSON will be written.
  * @param data JS object from which the JSON is created.
  */
-export function writeJSON(filepath: string, data: object): Promise<undefined> {
+export function writeJSON(filepath: string, data: object): Promise<void> {
     return new Promise((resolve, reject) => {
         fs.writeFile(filepath, JSON.stringify(data), (err) => {
             if (err) {

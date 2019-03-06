@@ -19,6 +19,7 @@
     "nodegit": "^0.24.1"
   },
   "devDependencies": {
+    "@types/inquirer": "0.0.44",
     "@types/node": "^11.10.4",
     "@types/nodegit": "^0.24.3"
   }
