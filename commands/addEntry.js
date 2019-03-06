@@ -23,7 +23,7 @@ const addEntry = function() {
     };
 
     let newFiles = [];
-    File.promiseDirectoryExistence(contentFolder)
+    File.promiseDirectoryExistence(contentFolder, false)
         .then(() => {
             return File.promiseFileExistence(contentFile)
                 .then(File.readJSON)
@@ -72,6 +72,8 @@ const addEntry = function() {
                 {
                     type: 'checkbox',
                     name: 'tags',
+
+                    // TODO: make these dynamic.
                     choices: [
                         "GameDev",
                         "Parenting",
@@ -99,7 +101,10 @@ const addEntry = function() {
                 .then(() => Log.log("Content update successful."))
                 .catch(Log.log);
         })
-        .catch(Log.log);
+        .catch((err) => {
+            Log.log(`Unable to add entry: ${err}`);
+            Log.log('Have you run \`configure\` yet?');
+        });
 }
 
 module.exports = addEntry;

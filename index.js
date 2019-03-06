@@ -31,10 +31,6 @@ instructions = {
     'help': {
         cmd: printInstructions,
         description: 'Display this help message.'
-    },
-    'publish': {
-        cmd: () => console.log('TODO: implement this.  Check timestamps on html files and copy over new ones.'),
-        description: 'Copy your blog content into the sloppy joe.'
     }
 }
 
