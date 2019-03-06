@@ -2,6 +2,10 @@
   "name": "lunchlady",
   "version": "1.0.0",
   "description": "Serverless blog for those of us without fancy servers.",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:slonermike/lunchlady.git"
+  },
   "main": "./bin/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
