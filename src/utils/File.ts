@@ -4,7 +4,7 @@ import * as fs from 'fs';
  * Check if a file already exists.
  * Resolves to true if the file exists, false if not.
  *
- * @param {String} filename Filename to check for existence.
+ * @param filename Filename to check for existence.
  */
 export function exists(filename: string): Promise<boolean> {
     return new Promise((resolve) => {
@@ -15,8 +15,8 @@ export function exists(filename: string): Promise<boolean> {
 /**
  * Create the directory if it doesn't already exist.
  *
- * @param {String} dirname Name of the directory to retrieve.
- * @param {boolean} createIfMissing True to auto-create the directory, false to reject if missing.
+ * @param dirname Name of the directory to retrieve.
+ * @param createIfMissing True to auto-create the directory, false to reject if missing.
  */
 export function promiseDirectoryExistence(dirname: string, createIfMissing: boolean = true): Promise<string> {
     return exists(dirname).then((exists) => {
@@ -36,7 +36,7 @@ export function promiseDirectoryExistence(dirname: string, createIfMissing: bool
  * Resolves w/ filename on success.
  * Rejects w/ filename on failure.
  *
- * @param {String} filename File to check.
+ * @param filename File to check.
  */
 export function promiseFileExistence(filename): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -149,7 +149,7 @@ export function directoryIsSymlink(dir: string): Promise<boolean> {
  * Read and parse a JSON file.
  * Resolves to the parsed JSON block.
  *
- * @param {String} filepath File from which we read the JSON.
+ * @param filepath File from which we read the JSON.
  */
 export function readJSON(filepath: string): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -167,8 +167,8 @@ export function readJSON(filepath: string): Promise<string> {
  * Write an object to a file as JSON.
  * Resolves w/o output.
  *
- * @param {String} filepath File to which the JSON will be written.
- * @param {object} data JS object from which the JSON is created.
+ * @param filepath File to which the JSON will be written.
+ * @param data JS object from which the JSON is created.
  */
 export function writeJSON(filepath: string, data: object): Promise<undefined> {
     return new Promise((resolve, reject) => {
@@ -184,7 +184,7 @@ export function writeJSON(filepath: string, data: object): Promise<undefined> {
 
 /**
  * Remove the trailing slash from a directory path
- * @param {String} directoryPath File path from which to remove a trailing slash.
+ * @param directoryPath File path from which to remove a trailing slash.
  */
 function removeTrailingSlash(directoryPath): string {
     return directoryPath.replace(/\/$/, "");
@@ -192,7 +192,7 @@ function removeTrailingSlash(directoryPath): string {
 
 /**
  * Add a trailing slash to a directory path (if not present).
- * @param {String} directoryPath Directory path to ensure has a trailing slash.
+ * @param directoryPath Directory path to ensure has a trailing slash.
  */
 function addTrailingSlash(directoryPath: string): string {
     return directoryPath.replace(/\/?$/, '/');
@@ -200,7 +200,7 @@ function addTrailingSlash(directoryPath: string): string {
 
 /**
  * If the path starts with alphanumeric value or _, add ./
- * @param {String} directoryPath Directory path to ensure starts with / or ./
+ * @param directoryPath Directory path to ensure starts with / or ./
  */
 function addLeadingDotSlash(directoryPath: string): string {
     if (directoryPath.match(/^[a-zA-Z0-9_]/)) {
@@ -213,7 +213,7 @@ function addLeadingDotSlash(directoryPath: string): string {
 /**
  * Add a ./ at the beginning, unless it already starts with ./ or /
  * Add a / at the end unless it already ends with /
- * @param {String} directoryPath Directory path to format.
+ * @param directoryPath Directory path to format.
  */
 export function formatDirectory(directoryPath: string): string {
     return addLeadingDotSlash(addTrailingSlash(directoryPath));
