@@ -1,6 +1,8 @@
-const FileUtils = require('../utils/File');
+import * as FileUtils from '../utils/File';
 
-const values = {
+export type ValueSet = Record<string, any>;
+
+const values: ValueSet = {
     configFolder: './config/',
     configFile: "config.json",
     contentFolder: './sloppy-joe/src/content/',
@@ -14,14 +16,14 @@ const values = {
 /**
  * Retrieve a specific value from configuration.
  */
-function getValue(key) {
+export function getValue(key: string) {
     return values[key];
 }
 
 /**
  * Promise resolves the finalized data, rejects the error.
  */
-function loadValues() {
+export function loadValues(): Promise<ValueSet> {
     const fullConfigFile = values.configFolder + values.configFile;
     return new Promise((resolve, reject) => {
         FileUtils.promiseFileExistence(fullConfigFile)
@@ -39,10 +41,10 @@ function loadValues() {
 /**
  * Set a config value by the key provided.
  *
- * @param {String} key key of the entry in the settings.
- * @param {any} value Value assigned to the entry.
+ * @param key key of the entry in the settings.
+ * @param value Value assigned to the entry.
  */
-function setValue(key, value) {
+export function setValue(key: string, value: any) {
     values[key] = value;
 }
 
@@ -50,9 +52,9 @@ function setValue(key, value) {
  * Assign all the values from the provided map to the current
  * configuration values.
  *
- * @param {object} valueMap Mapping of keys to values.
+ * @param valueMap Mapping of keys to values.
  */
-function setValues(valueMap) {
+export function setValues(valueMap: ValueSet): void {
     Object.assign(values, valueMap);
 }
 
@@ -61,23 +63,13 @@ function setValues(valueMap) {
  * Resolve on write success.
  * Reject on failure w/ error message.
  *
- * @param {object} newValues Mapping of key/value pairs to apply before writing (optional).
+ * @param newValues Mapping of key/value pairs to apply before writing (optional).
  */
-function writeValues(newValues = null) {
+export function writeValues(newValues?: ValueSet): Promise<void> {
     if (newValues) {
         setValues(newValues);
     }
 
     const fullConfigFile = values.configFolder + values.configFile;
-    return new Promise((resolve, reject) => {
-        FileUtils.writeJSON(fullConfigFile, values).then(resolve).catch(reject);
-    });
-}
-
-module.exports = {
-    getValue,
-    loadValues,
-    setValue,
-    setValues,
-    writeValues
+    return FileUtils.writeJSON(fullConfigFile, values);
 }

@@ -1,3 +1,6 @@
+import { promiseDirectoryExistence, promiseFileExistence, readJSON } from "../utils/File";
+import { Blog } from "../types/blog";
+
 /**
  * Idiotic script for adding blog entries in my idiotic blog.
  * It's not elegant or clever.  It's functional.
@@ -15,22 +18,30 @@ const supportedFileTypes = (/\.(htm|html)$/i);
 // Register the datepicker prompt.
 inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
 
-const addEntry = function() {
+/**
+ * Present the user with all valid entries that haven't been added to
+ * the list and allow them to use those to build out a new entry.
+ *
+ * TODO: break this code up into smaller chunks.
+ * TODO: merge the blog entry update/creation flow between here and `manage`
+ *          -- Create an empty entry, then use the manage code update it.
+ */
+export function addEntry(): Promise<void> {
     const contentFolder = Configuration.getValue('contentFolder');
     const contentFile = contentFolder + Configuration.getValue('contentFile');
     const htmlFolder = Configuration.getValue('htmlFolder');
 
     // Default structure of file data.
-    let existingData = {
+    let existingData: Blog = {
         entries: []
     };
 
     let newFiles = [];
-    File.promiseDirectoryExistence(contentFolder, false)
+    return promiseDirectoryExistence(contentFolder, false)
         .then(() => {
-            return File.promiseFileExistence(contentFile)
-                .then(File.readJSON)
-                .then((data) => existingData = data)
+            return promiseFileExistence(contentFile)
+                .then(readJSON)
+                .then((data) => existingData = data as Blog)
                 .catch(() => {
                     Log.log(`${contentFile} does not yet exist.`);
                 });
@@ -44,7 +55,7 @@ const addEntry = function() {
             newFiles = files.filter((filename) => {
                 // Possible optimization.  O(n^2)
                 if (existingData.entries) {
-                    for (entry of existingData.entries) {
+                    for (let entry of existingData.entries) {
                         if (entry.file === filename) {
                             return false;
                         }
@@ -114,8 +125,6 @@ const addEntry = function() {
         })
         .catch((err) => {
             Log.log(`Unable to add entry: ${err}`);
-            Log.log('Have you run \`configure\` yet?');
+            Log.log('Have you run \`lunchlady setup\` yet?');
         });
 }
-
-module.exports = addEntry;
