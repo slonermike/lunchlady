@@ -4,7 +4,7 @@ import * as addEntry from './commands/addEntry';
 import * as manage from './commands/manage';
 import * as configure from './commands/configure';
 import * as Configuration from './modules/configuration';
-import * as Log from './utils/Log';
+import Log from './utils/Log';
 
 class CLIInstruction {
     cmd: () => void;

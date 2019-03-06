@@ -1,6 +1,6 @@
 import * as Configuration from '../modules/configuration';
 import * as FileUtils from '../utils/File';
-import * as Log from '../utils/Log';
+import Log from '../utils/Log';
 import { Repository, Clone, Error as GitError } from 'nodegit';
 
 /**
