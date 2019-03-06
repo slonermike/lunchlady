@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "inquirer": "^6.2.0",
+    "inquirer-datepicker": "^1.0.0",
     "nodegit": "^0.24.1"
   }
 }

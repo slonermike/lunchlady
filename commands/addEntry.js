@@ -12,6 +12,9 @@ const Log = require('../utils/Log');
 
 const supportedFileTypes = (/\.(htm|html)$/i);
 
+// Register the datepicker prompt.
+inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
+
 const addEntry = function() {
     const contentFolder = Configuration.getValue('contentFolder');
     const contentFile = contentFolder + Configuration.getValue('contentFile');
@@ -82,6 +85,13 @@ const addEntry = function() {
                         "Unity"
                     ],
                     message: "What tags would you like to apply?"
+                },
+                {
+                    type: 'datepicker',
+                    name: 'publish-date',
+                    message: 'Select a publish date: ',
+                    format: ['Y', '/', 'MM', '/', 'DD', ' ', 'hh', ':', 'mm', ' ', 'A'],
+                    default: new Date()
                 }
             ];
 
@@ -90,7 +100,8 @@ const addEntry = function() {
                 const newEntry = {
                     file: filename,
                     title: answers['title'],
-                    tags: answers['tags']
+                    tags: answers['tags'],
+                    date: answers['publish-date']
                 }
                 existingData.entries.push(newEntry);
                 return File.writeJSON(contentFile, existingData);
