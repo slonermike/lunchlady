@@ -2,15 +2,13 @@
   "name": "lunchlady",
   "version": "1.0.0",
   "description": "Serverless blog for those of us without fancy servers.",
-  "main": "index.js",
+  "main": "./bin/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "slonersoft@gmail.com",
   "license": "MIT",
-  "bin": {
-    "lunchlady": "./index.js"
-  },
+  "bin": "./bin/index.js",
   "dependencies": {
     "inquirer": "^6.2.0",
     "inquirer-datepicker": "^1.0.0",
