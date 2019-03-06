@@ -3,6 +3,7 @@ import { registerPrompt, prompt, Question } from 'inquirer';
 import { getValue } from '../modules/configuration';
 import { log } from '../utils/Log';
 import { promiseFileExistence, readJSON, writeJSON } from '../utils/File';
+import { BlogEntry, Blog } from '../types/blog';
 
 // Register the datepicker plugin for inquirer
 registerPrompt('datepicker', require('inquirer-datepicker'));
@@ -13,17 +14,6 @@ registerPrompt('datepicker', require('inquirer-datepicker'));
 type ManageQ = Question | {
     format?: string[]
 };
-
-interface Blog {
-    entries: BlogEntry[];
-}
-
-interface BlogEntry {
-    file: string,
-    title: string,
-    tags: string[],
-    date: Date
-}
 
 /**
  * Load the blog data from JSON.

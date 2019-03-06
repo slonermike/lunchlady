@@ -1,38 +1,41 @@
 #!/usr/bin/env node
 import { getsloppy } from './commands/getsloppy';
-import * as addEntry from './commands/addEntry';
+import { addEntry } from './commands/addEntry';
 import { manage } from './commands/manage';
-import { configure } from './commands/configure';
+import { setup } from './commands/setup';
 import { log } from './utils/Log';
 import { loadValues } from './modules/configuration';
 
-interface CLIInstruction {
+interface AppCommand {
     // TODO: remove the () => void option and inline the cmd call in the promise chain.
-    cmd: (() => Promise<void>) | (() => void);
+    cmd: () => Promise<void>;
     description: string;
 }
-let instructions: Record<string, CLIInstruction> = {};
+let commands: Record<string, AppCommand> = {};
 
-const printInstructions = function () {
-    log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
-    for (let key in instructions) {
-        let description = instructions[key].description ? ' - ' + instructions[key].description : '';
-        log('\t' + key + description);
-    }
+const printInstructions = function (): Promise<void> {
+    return new Promise((resolve, _reject) => {
+        log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
+        for (let key in commands) {
+            let description = commands[key].description ? ' - ' + commands[key].description : '';
+            log('\t' + key + description);
+        }
+        resolve();
+    });
 }
 
-instructions = {
+commands = {
     'get-sloppy': {
         cmd: getsloppy,
-        description: 'Initialize the sloppy joe repo so that we can see what we\'re working on.'
+        description: 'Initialize or update the Sloppy Joe code.'
     },
-    'configure': {
-        cmd: configure,
-        description: 'Configure the local source and server destination of your blog files.'
+    'setup': {
+        cmd: setup,
+        description: 'Set up Sloppy Joe and link it to the local HTML folder for your blog entries.'
     },
     'add': {
         cmd: addEntry,
-        description: 'Create a new blog entry from the existing html files in the content folder'
+        description: 'Create a new blog entry from the existing html files in the content folder.'
     },
     'manage': {
         cmd: manage,
@@ -45,14 +48,14 @@ instructions = {
 };
 
 let command = process.argv[2];
-if (!command || !instructions[command]) {
+if (!command || !commands[command]) {
     command = 'help';
 }
 
 loadValues()
     .catch((_msg) => {
-        if (command != 'configure')
-            log(`No stored configuration available -- run 'lunchlady configure'`)}
-    ).then(() => {
-        instructions[command].cmd();
-    }).catch((err) => log(`Error executing \`${command}\` instruction: ${err}`));
+        if (command != 'setup')
+            log(`No stored configuration available -- run 'lunchlady setup'`)}
+    )
+    .then(commands[command].cmd)
+    .catch((err) => log(`Error executing \`${command}\` instruction: ${err}`));

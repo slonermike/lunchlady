@@ -1,7 +1,7 @@
-import * as Configuration from '../modules/configuration';
-import * as FileUtils from '../utils/File';
 import { log } from '../utils/Log';
 import { Repository, Clone, Error as GitError } from 'nodegit';
+import { getValue } from '../modules/configuration';
+import { promiseDirectoryExistence, exists } from '../utils/File';
 
 /**
  * Look for a local repo, and if it doesn't exist, create it.
@@ -51,14 +51,21 @@ function getLatest(repo: Repository, branch: string) {
 }
 
 /**
+ * Determine whether the sloppy joe folder exists, or needs to be created.
+ */
+export function sloppyFolderExists(): Promise<boolean> {
+    return exists(getValue('sloppyJoeFolder'));
+}
+
+/**
  * Command to retrieve the latest source from sloppy joe.
  */
 export function getsloppy(): Promise<void> {
-    const sloppyJoeFolder = Configuration.getValue('sloppyJoeFolder');
-    const remoteUrl = Configuration.getValue('sloppyJoeOrigin');
-    const branch = Configuration.getValue('sloppyJoeBranch');
+    const sloppyJoeFolder = getValue('sloppyJoeFolder');
+    const remoteUrl = getValue('sloppyJoeOrigin');
+    const branch = getValue('sloppyJoeBranch');
 
-    return FileUtils.promiseDirectoryExistence(sloppyJoeFolder)
+    return promiseDirectoryExistence(sloppyJoeFolder)
         .then((dir) => createOrRetrieveRepo(dir, remoteUrl))
         .then((repo) => getLatest(repo, branch))
         .catch(err => {

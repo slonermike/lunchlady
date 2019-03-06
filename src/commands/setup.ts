@@ -4,6 +4,7 @@ import { log } from '../utils/Log';
 import { ValueSet } from '../modules/configuration';
 import { getValue } from '../modules/configuration';
 import { writeValues } from '../modules/configuration';
+import { getsloppy } from './getsloppy';
 
 /**
  * Fix the user input to be formatted more consistently.
@@ -38,7 +39,7 @@ function unlinkIfSymlink(dir: string): Promise<string> {
                         reject(`Cannot unlink content folder which is not a symlink: ${dir}`);
                     } else {
                         // TODO
-                        reject(`Auto-unlink of content folder is not yet supported.  Delete symlink at ${dir} and run \`configure\` again`);
+                        reject(`Auto-unlink of content folder is not yet supported.  Delete symlink at ${dir} and run \`lunchlady setup\` again`);
                     }
                 });
             }
@@ -46,11 +47,13 @@ function unlinkIfSymlink(dir: string): Promise<string> {
     });
 }
 
-export function configure(): Promise<any> {
-
+/**
+ * Retrieve the HTML directory from the user and link it to our
+ * content folder in Sloppy Joe.
+ */
+function linkHtmlDirectory(): Promise<void> {
     const configFolder = getValue('configFolder');
 
-    // Link the directory if it doesn't exist.
     return FileUtils.promiseDirectoryExistence(configFolder).then(() => {
         var configQuestions = [
             {
@@ -60,6 +63,7 @@ export function configure(): Promise<any> {
             }
         ];
 
+        // TODO: Implement fuzzy-path inquirer plugin -- https://github.com/adelsz/inquirer-fuzzy-path
         return inquirer.prompt(configQuestions)
             .then(fixValues)
             .then(writeValues)
@@ -73,7 +77,16 @@ export function configure(): Promise<any> {
             .catch(err => log(err));
     }).catch((err) => {
         log(`Could not promise directory existence: ${err}`);
-    });
+    })
 }
 
-export default configure;
+/**
+ * Retrieves the Sloppy Joe repository, then links the local HTML source folder
+ * into it.
+ */
+export function setup(): Promise<void> {
+    // Link the directory if it doesn't exist.
+    return getsloppy().then(linkHtmlDirectory).catch(log);
+}
+
+export default setup;
