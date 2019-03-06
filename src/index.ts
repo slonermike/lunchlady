@@ -1,12 +1,16 @@
 #!/usr/bin/env node
-const getsloppy = require('./commands/getsloppy');
-const addEntry = require('./commands/addEntry');
-const manage = require('./commands/manage');
-const configure = require('./commands/configure');
-const Configuration = require('./modules/configuration');
-const Log = require('./utils/Log');
+import getsloppy from './commands/getsloppy';
+import * as addEntry from './commands/addEntry';
+import * as manage from './commands/manage';
+import * as configure from './commands/configure';
+import * as Configuration from './modules/configuration';
+import * as Log from './utils/Log';
 
-let instructions = {};
+class CLIInstruction {
+    cmd: () => void;
+    description: string;
+}
+let instructions: Record<string, CLIInstruction> = {};
 
 const printInstructions = function () {
     Log.log("\nUsage: 'lunchlady <command>', where <command> is one of:\n");
@@ -37,7 +41,7 @@ instructions = {
         cmd: printInstructions,
         description: 'Display this help message.'
     }
-}
+};
 
 let command = process.argv[2];
 if (!command || !instructions[command]) {
@@ -49,5 +53,5 @@ Configuration.loadValues()
         if (command != 'configure')
             Log.log(`No stored configuration available -- run 'lunchlady configure'`)}
     ).then(() => {
-        instructions[command].cmd()
-    });
+        instructions[command].cmd();
+    }).catch((err) => Log.log(`Error executing \`${command}\` instruction: ${err}`));

@@ -17,5 +17,9 @@
     "inquirer": "^6.2.0",
     "inquirer-datepicker": "^1.0.0",
     "nodegit": "^0.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^11.10.4",
+    "@types/nodegit": "^0.24.3"
   }
 }
