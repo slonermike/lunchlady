@@ -16,6 +16,7 @@
   "dependencies": {
     "inquirer": "^6.2.0",
     "inquirer-datepicker": "^1.0.0",
+    "inquirer-path": "^1.0.0-beta5",
     "nodegit": "^0.24.1"
   },
   "devDependencies": {

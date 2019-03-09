@@ -4,10 +4,9 @@ import { addEntry } from './commands/addEntry';
 import { manage } from './commands/manage';
 import { setup } from './commands/setup';
 import { log } from './utils/Log';
-import { loadValues } from './modules/configuration';
+import { loadValues, getValue } from './modules/configuration';
 
 interface AppCommand {
-    // TODO: remove the () => void option and inline the cmd call in the promise chain.
     cmd: () => Promise<void>;
     description: string;
 }
@@ -26,7 +25,7 @@ const printInstructions = function (): Promise<void> {
 
 commands = {
     'get-sloppy': {
-        cmd: getsloppy,
+        cmd: () => getsloppy(getValue('sloppyJoeFolder'), getValue('sloppyJoeOrigin'), getValue('sloppyJoeBranch')),
         description: 'Initialize or update the Sloppy Joe code.'
     },
     'setup': {

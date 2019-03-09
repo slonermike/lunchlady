@@ -60,17 +60,13 @@ export function sloppyFolderExists(): Promise<boolean> {
 /**
  * Command to retrieve the latest source from sloppy joe.
  */
-export function getsloppy(): Promise<void> {
-    const sloppyJoeFolder = getValue('sloppyJoeFolder');
-    const remoteUrl = getValue('sloppyJoeOrigin');
-    const branch = getValue('sloppyJoeBranch');
-
-    return promiseDirectoryExistence(sloppyJoeFolder)
+export function getsloppy(repoFolder: string, remoteUrl: string, branch: string): Promise<void> {
+    return promiseDirectoryExistence(repoFolder)
         .then((dir) => createOrRetrieveRepo(dir, remoteUrl))
         .then((repo) => getLatest(repo, branch))
         .catch(err => {
             // Something other than missing repo happened.  Report it raw.
-            log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${sloppyJoeFolder}`);
+            log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${repoFolder}`);
             log(err);
         }) as Promise<void>;
 }

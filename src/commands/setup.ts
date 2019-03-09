@@ -1,10 +1,14 @@
-import * as inquirer from 'inquirer';
+import { registerPrompt, prompt } from 'inquirer';
 import * as FileUtils from '../utils/File';
 import { log } from '../utils/Log';
 import { ValueSet } from '../modules/configuration';
 import { getValue } from '../modules/configuration';
 import { writeValues } from '../modules/configuration';
 import { getsloppy } from './getsloppy';
+import { PathPrompt } from 'inquirer-path'
+
+// Register the datepicker plugin for inquirer
+registerPrompt('path', PathPrompt);
 
 /**
  * Fix the user input to be formatted more consistently.
@@ -57,14 +61,16 @@ function linkHtmlDirectory(): Promise<void> {
     return FileUtils.promiseDirectoryExistence(configFolder).then(() => {
         var configQuestions = [
             {
+                message: 'Where is the HTML for your blog entries?',
                 name: 'htmlFolder',
-                type: 'input',
-                default: getValue('htmlFolder')
+                type: 'path',
+                default: getValue('htmlFolder') || '~/',
+                cwd: process.cwd(),
+                directoryOnly: true
             }
         ];
 
-        // TODO: Implement fuzzy-path inquirer plugin -- https://github.com/adelsz/inquirer-fuzzy-path
-        return inquirer.prompt(configQuestions)
+        return prompt(configQuestions)
             .then(fixValues)
             .then(writeValues)
             .then(() => {
@@ -85,8 +91,15 @@ function linkHtmlDirectory(): Promise<void> {
  * into it.
  */
 export function setup(): Promise<void> {
+    const remoteUrl = getValue('sloppyJoeOrigin');
+    const branch = getValue('sloppyJoeBranch');
+
+    // TODO: let the user specify where to create the sloppy-joe repository.
+    // Default to current folder w/ confirmation yes/no?
+    const repoFolder = getValue('sloppyJoeFolder')
+
     // Link the directory if it doesn't exist.
-    return getsloppy().then(linkHtmlDirectory).catch(log);
+    return getsloppy(repoFolder, remoteUrl, branch).then(linkHtmlDirectory).catch(log);
 }
 
 export default setup;
