@@ -120,24 +120,27 @@ function updateEntry(blog: Blog, entry: BlogEntry): Blog {
 }
 
 /**
- * Let the user choose an entry to update, and update it.
- * Resolves to the updated blog object.
- *
- * @param blog Blog from which the user will choose an item to update.
+ * Edit an entry and save it to the blog.
+ * @param blog Blog to save it to.
+ * @param entry Entry to edit.
  */
-function inputEntryUpdate(blog: Blog): Promise<Blog> {
-    return selectEntry(blog)
-    .then(editEntry)
-    .then((newEntry) => updateEntry(blog, newEntry));
+export function editEntryAndSave(blog: Blog, entry: BlogEntry): Promise<void> {
+    const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
+    return editEntry(entry)
+        .then((entry) => updateEntry(blog, entry))
+        .then((updatedBlog) => writeJSON(contentFile, updatedBlog));
 }
 
 export function manage(): Promise<void> {
-    const contentFolder = getValue('contentFolder');
-    const contentFile = contentFolder + getValue('contentFile');
+    const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
+    let loadedBlog: Blog;
 
     return getBlogData(contentFile)
-    .then(inputEntryUpdate)
-    .then((updatedBlog) => writeJSON(contentFile, updatedBlog))
+    .then((blog) => {
+        loadedBlog = blog;
+        return selectEntry(blog);
+    })
+    .then((entry) => editEntryAndSave(loadedBlog, entry))
     .catch((err) => {
         log(`manage: ${err}`);
     }) as Promise<void>;

@@ -1,5 +1,6 @@
 import { promiseDirectoryExistence, promiseFileExistence, readJSON } from "../utils/File";
 import { Blog } from "../types/blog";
+import { editEntryAndSave } from "./manage";
 
 /**
  * Idiotic script for adding blog entries in my idiotic blog.
@@ -28,7 +29,8 @@ inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
  */
 export function addEntry(): Promise<void> {
     const contentFolder = Configuration.getValue('contentFolder');
-    const contentFile = contentFolder + Configuration.getValue('contentFile');
+    const sloppyJoeFolder = Configuration.getValue('sloppyJoeFolder');
+    const contentFile = sloppyJoeFolder + Configuration.getValue('contentFile');
     const htmlFolder = Configuration.getValue('htmlFolder');
 
     // Default structure of file data.
@@ -37,9 +39,16 @@ export function addEntry(): Promise<void> {
     };
 
     let newFiles = [];
-    return promiseDirectoryExistence(contentFolder, false)
+    // Make sure we have the sloppy joe folder available.
+    return promiseDirectoryExistence(sloppyJoeFolder, false)
+
+    // And the content folder inside it.
+        .then(() => promiseDirectoryExistence(contentFolder, false))
+
+        // Then load in the content file if it exists.
         .then(() => {
             return promiseFileExistence(contentFile)
+                // Read it in.
                 .then(readJSON)
                 .then((data) => existingData = data as Blog)
                 .catch(() => {
@@ -77,49 +86,21 @@ export function addEntry(): Promise<void> {
                     name: 'filename',
                     choices: newFiles,
                     message: 'Which file would you like to add to your blog?'
-                },
-                {
-                    type: 'input',
-                    name: 'title',
-                    message: "What is the title of your blog entry?",
-                },
-                {
-                    type: 'checkbox',
-                    name: 'tags',
-
-                    // TODO: make these dynamic.
-                    choices: [
-                        "GameDev",
-                        "Parenting",
-                        "WebDev",
-                        "Javascript",
-                        "Unity"
-                    ],
-                    message: "What tags would you like to apply?"
-                },
-                {
-                    type: 'datepicker',
-                    name: 'publish-date',
-                    message: 'Select a publish date: ',
-                    format: ['Y', '/', 'MM', '/', 'DD', ' ', 'hh', ':', 'mm', ' ', 'A'],
-                    default: new Date()
                 }
             ];
 
-            const applyAndWrite = function(answers) {
-                const filename = answers['filename'];
-                const newEntry = {
-                    file: filename,
-                    title: answers['title'],
-                    tags: answers['tags'],
-                    date: answers['publish-date']
-                }
-                existingData.entries.push(newEntry);
-                return File.writeJSON(contentFile, existingData);
+            const createBarebonesEntry = function(answers) {
+                return {
+                    file: answers['filename'],
+                    title: '',
+                    tags: [],
+                    date: new Date()
+                };
             }
 
             return inquirer.prompt(addEntryQuestions)
-                .then(applyAndWrite)
+                .then(createBarebonesEntry)
+                .then((entry) => editEntryAndSave(existingData, entry))
                 .then(() => Log.log("Content update successful."))
                 .catch(Log.log);
         })

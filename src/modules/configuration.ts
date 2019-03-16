@@ -5,12 +5,12 @@ export type ValueSet = Record<string, any>;
 const values: ValueSet = {
     configFolder: './config/',
     configFile: "config.json",
-    contentFolder: './sloppy-joe/src/content/',
+    contentFolder: './sloppy-joe/public/content/',
     htmlFolder: null,
     sloppyJoeFolder: './sloppy-joe/',
     sloppyJoeOrigin: 'https://github.com/slonermike/sloppy-joe.git',
     sloppyJoeBranch: 'master',
-    contentFile: 'index.json'
+    contentFile: 'src/content.json'
 }
 
 /**
