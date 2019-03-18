@@ -10,11 +10,16 @@
 - Add no-sync option to `lunchlady setup`?  Only needs to run once, so might not be necessary.  Useful for offline development.
 - Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
 - Delete command in `lunchlady manage` (with confirmation)
+- Sort tag list based on frequency of tags' appearance.
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
 - Ability to spin up the `sloppy-joe` server via a `lunchlady` command -- e.g. `lunchlady start`
 - Should I disallow spaces on tags?  Might make it nicer for deeplinks.
+- Locally-run web interface?  There are rich text editors out there that could be utilized.
+
+# Open Questions
+- What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
 
 # Challenges Ahead
 - How do we handle images?
@@ -27,7 +32,7 @@
 # Releases
 
 ## vNext
-Update to documentation.
+Making it useful.  Documenting the process.
 
 ### Features
 - Updated readme documentation to include more descriptive indstructions.
@@ -35,6 +40,8 @@ Update to documentation.
 - Implemented `inquirer-path` input for folder configuration.
 - Unify entry editing code between `lunchlady add` and `lunchlady manage`
 - Dynamic specification of blog entry tags.
+- Limit length of tags to 32 characters.
+- Disallow symbols, spaces, capitalization in tags, convert to 'param case'.
 
 ## v0.0.1
 Initial release of lunchlady w/ minimal awesomeness.

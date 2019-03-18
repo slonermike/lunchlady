@@ -5,11 +5,17 @@ import { log } from '../utils/Log';
 import { promiseFileExistence, readJSON, writeJSON } from '../utils/File';
 import { BlogEntry, Blog } from '../types/blog';
 
+// Old-school.
+const paramCase = require('param-case');
+
 // Register the datepicker plugin for inquirer
 registerPrompt('datepicker', require('inquirer-datepicker'));
 
 /** Entry value for adding new tags. */
 const ADD_TAG_VALUE = '[Create New Tags]';
+
+/** Maximum length for a tag. */
+const MAX_TAG_LENGTH = 32;
 
 type AddState = 'start' | 'continue' | 'finish';
 
@@ -20,7 +26,7 @@ type ManageQ = Question | {
     format?: string[]
 };
 
-/**
+/**z
  * Load the blog data from JSON.
  *
  * @param contentFile File from which to load the blog data.
@@ -74,6 +80,20 @@ function editEntry(entry: BlogEntry, blog: Blog): Promise<BlogEntry> {
 }
 
 /**
+ * Fix the formatting & length of the tag.
+ *
+ * @param tag Tag to fix.
+ */
+function fixTag(tag: string): string {
+    const newTag = paramCase(tag);
+    if (tag.length > MAX_TAG_LENGTH) {
+        return newTag.slice(0, MAX_TAG_LENGTH);
+    } else {
+        return newTag;
+    }
+}
+
+/**
  * Add new tags to an entry, or do nothing if we didn't
  * request that.
  *
@@ -102,14 +122,23 @@ function addNewTags(entry: BlogEntry, state: AddState = 'start'): Promise<BlogEn
     }];
 
     return prompt(questions).then((answers) => {
-        const newTag = answers['tag'];
-        if (!newTag) {
+        const rawTag = answers['tag'];
+        if (!rawTag) {
             return addNewTags(entry, 'finish');
         }
 
-        // Only add if it's not already in there.
-        if (entry.tags.indexOf(newTag) === -1) {
-            entry.tags.push(newTag);
+        const fixedTag = fixTag(rawTag);
+
+        // Only add if it's valid and not already in there.
+        if (!fixedTag) {
+            log(`Invalid Tag: ${rawTag}`);
+        } else if (entry.tags.indexOf(fixedTag) !== -1) {
+            log(`Existing Tag: ${fixedTag}`);
+        } else {
+            if (fixedTag !== rawTag) {
+                log(`Fixing Tag: \`${rawTag}\` => \`${fixedTag}\``);
+            }
+            entry.tags.push(fixedTag);
         }
 
         return addNewTags(entry, 'continue');
@@ -192,6 +221,9 @@ export function editEntryAndSave(blog: Blog, entry: BlogEntry): Promise<void> {
         });
 }
 
+/**
+ * Manage the blog at a high level.
+ */
 export function manage(): Promise<void> {
     const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
     let loadedBlog: Blog;
