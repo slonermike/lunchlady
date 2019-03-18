@@ -1,5 +1,4 @@
 # Planned Improvements
-- Dynamic specification of blog entry tags.
 - De-spaghetti `lunchlady add` code.
 - Change `updateEntry` so it no longer updates state in place.
 - Allow user to specify client code destination directory.
@@ -15,6 +14,7 @@
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
 - Ability to spin up the `sloppy-joe` server via a `lunchlady` command -- e.g. `lunchlady start`
+- Should I disallow spaces on tags?  Might make it nicer for deeplinks.
 
 # Challenges Ahead
 - How do we handle images?
@@ -34,6 +34,7 @@ Update to documentation.
 - Added The Plan! (this document).
 - Implemented `inquirer-path` input for folder configuration.
 - Unify entry editing code between `lunchlady add` and `lunchlady manage`
+- Dynamic specification of blog entry tags.
 
 ## v0.0.1
 Initial release of lunchlady w/ minimal awesomeness.

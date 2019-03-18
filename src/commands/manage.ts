@@ -8,6 +8,11 @@ import { BlogEntry, Blog } from '../types/blog';
 // Register the datepicker plugin for inquirer
 registerPrompt('datepicker', require('inquirer-datepicker'));
 
+/** Entry value for adding new tags. */
+const ADD_TAG_VALUE = '[Create New Tags]';
+
+type AddState = 'start' | 'continue' | 'finish';
+
 /**
  * Allow use of 'format' for the datepicker.
  */
@@ -30,7 +35,10 @@ function getBlogData(contentFile: string): Promise<Blog> {
  *
  * @param entry Entry to be edited.
  */
-function editEntry(entry: BlogEntry): Promise<BlogEntry> {
+function editEntry(entry: BlogEntry, blog: Blog): Promise<BlogEntry> {
+    const tags = getBlogTags(blog);
+    tags.push(ADD_TAG_VALUE);
+
     const questions: ManageQ[] = [
         {
             type: 'input',
@@ -39,26 +47,18 @@ function editEntry(entry: BlogEntry): Promise<BlogEntry> {
             default: entry.title
         },
         {
-            type: 'checkbox',
-            name: 'tags',
-
-            // TODO: make these dynamic.
-            choices: [
-                "GameDev",
-                "Parenting",
-                "WebDev",
-                "Javascript",
-                "Unity"
-            ],
-            message: "Content Tags",
-            default: entry.tags
-        },
-        {
             type: 'datepicker',
             name: 'publish-date',
             message: 'Publish date: ',
             format: ['Y', '/', 'MM', '/', 'DD', ' ', 'hh', ':', 'mm', ' ', 'A'],
             default: new Date(entry.date)
+        },
+        {
+            type: 'checkbox',
+            name: 'tags',
+            choices: tags,
+            message: "Content Tags",
+            default: entry.tags
         }
     ];
 
@@ -70,7 +70,50 @@ function editEntry(entry: BlogEntry): Promise<BlogEntry> {
                 tags: answers['tags'],
                 date: answers['publish-date']
             };
-        });
+        }).then(addNewTags);
+}
+
+/**
+ * Add new tags to an entry, or do nothing if we didn't
+ * request that.
+ *
+ * @param entry Entry to which we want to add new tags.
+ */
+function addNewTags(entry: BlogEntry, state: AddState = 'start'): Promise<BlogEntry> {
+    if (state === 'start' ) {
+        const addTagPos = entry.tags.indexOf(ADD_TAG_VALUE);
+        if (addTagPos === -1) {
+            state = 'finish';
+        } else {
+            // Remove the 'add tag' entry.
+            entry.tags.splice(addTagPos, 1);
+        }
+    }
+
+    if (state === 'finish') {
+        return new Promise((resolve) => resolve(entry));
+    }
+
+    const questions: Question[] = [{
+        type: 'input',
+        name: 'tag',
+        message: "New Tag [Blank to Stop]",
+        default: ''
+    }];
+
+    return prompt(questions).then((answers) => {
+        const newTag = answers['tag'];
+        if (!newTag) {
+            return addNewTags(entry, 'finish');
+        }
+
+        // Only add if it's not already in there.
+        if (entry.tags.indexOf(newTag) === -1) {
+            entry.tags.push(newTag);
+        }
+
+        return addNewTags(entry, 'continue');
+    })
 }
 
 /**
@@ -120,15 +163,33 @@ function updateEntry(blog: Blog, entry: BlogEntry): Blog {
 }
 
 /**
+ * Get the list of all the tags used by the blog.
+ *
+ * @param blog Blog from which to retrieve the tags.
+ */
+function getBlogTags(blog: Blog): string[] {
+    const foundTags: Record<string, boolean> = {};
+    blog.entries.map((entry: BlogEntry) => {
+        entry.tags.map((tag) => {
+            foundTags[tag] = true;
+        });
+    });
+
+    return Object.keys(foundTags);
+}
+
+/**
  * Edit an entry and save it to the blog.
  * @param blog Blog to save it to.
  * @param entry Entry to edit.
  */
 export function editEntryAndSave(blog: Blog, entry: BlogEntry): Promise<void> {
     const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
-    return editEntry(entry)
+    return editEntry(entry, blog)
         .then((entry) => updateEntry(blog, entry))
-        .then((updatedBlog) => writeJSON(contentFile, updatedBlog));
+        .then((updatedBlog) => writeJSON(contentFile, updatedBlog)).then(() => {
+            console.log('Entry updated.');
+        });
 }
 
 export function manage(): Promise<void> {
