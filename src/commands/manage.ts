@@ -3,7 +3,7 @@ import { registerPrompt, prompt, Question } from 'inquirer';
 import { getValue } from '../modules/configuration';
 import { log } from '../utils/Log';
 import { promiseFileExistence, readJSON, writeJSON } from '../utils/File';
-import { BlogEntry, Blog } from '../types/blog';
+import { BlogEntry, Blog, Site } from '../types/site';
 
 // Old-school.
 const paramCase = require('param-case');
@@ -13,11 +13,6 @@ registerPrompt('datepicker', require('inquirer-datepicker'));
 
 /** Entry value for adding new tags. */
 const ADD_TAG_VALUE = '[Create New Tags]';
-
-/** Maximum length for a tag. */
-const MAX_TAG_LENGTH = 32;
-
-type AddState = 'start' | 'continue' | 'finish';
 
 /**
  * Allow use of 'format' for the datepicker.
@@ -31,8 +26,8 @@ type ManageQ = Question | {
  *
  * @param contentFile File from which to load the blog data.
  */
-function getBlogData(contentFile: string): Promise<Blog> {
-    return promiseFileExistence(contentFile).then((filename) => readJSON(filename) as Promise<Blog>);
+function getSiteData(contentFile: string): Promise<Site> {
+    return promiseFileExistence(contentFile).then((filename) => readJSON(filename) as Promise<Site>);
 }
 
 /**
@@ -86,8 +81,10 @@ function editEntry(entry: BlogEntry, blog: Blog): Promise<BlogEntry> {
  */
 function fixTag(tag: string): string {
     const newTag = paramCase(tag);
-    if (tag.length > MAX_TAG_LENGTH) {
-        return newTag.slice(0, MAX_TAG_LENGTH);
+    const maxLength = getValue('maxTagLength');
+
+    if (tag.length > maxLength) {
+        return newTag.slice(0, maxLength);
     } else {
         return newTag;
     }
@@ -99,7 +96,7 @@ function fixTag(tag: string): string {
  *
  * @param entry Entry to which we want to add new tags.
  */
-function addNewTags(entry: BlogEntry, state: AddState = 'start'): Promise<BlogEntry> {
+function addNewTags(entry: BlogEntry, state: 'start' | 'continue' | 'finish' = 'start'): Promise<BlogEntry> {
     if (state === 'start' ) {
         const addTagPos = entry.tags.indexOf(ADD_TAG_VALUE);
         if (addTagPos === -1) {
@@ -209,16 +206,22 @@ function getBlogTags(blog: Blog): string[] {
 
 /**
  * Edit an entry and save it to the blog.
- * @param blog Blog to save it to.
+ * @param blog Blog to apply it to.
  * @param entry Entry to edit.
  */
-export function editEntryAndSave(blog: Blog, entry: BlogEntry): Promise<void> {
-    const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
+export function editEntryAndApply(blog: Blog, entry: BlogEntry): Promise<Blog> {
     return editEntry(entry, blog)
-        .then((entry) => updateEntry(blog, entry))
-        .then((updatedBlog) => writeJSON(contentFile, updatedBlog)).then(() => {
-            console.log('Entry updated.');
-        });
+        .then((entry) => updateEntry(blog, entry));
+}
+
+/**
+ * Export the site to `sloppy-joe`
+ *
+ * @param site Site to export.
+ */
+export function saveSite(site: Site) {
+    const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
+    return writeJSON(contentFile, site);
 }
 
 /**
@@ -226,14 +229,22 @@ export function editEntryAndSave(blog: Blog, entry: BlogEntry): Promise<void> {
  */
 export function manage(): Promise<void> {
     const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
-    let loadedBlog: Blog;
+    let loadedSite: Site;
 
-    return getBlogData(contentFile)
-    .then((blog) => {
-        loadedBlog = blog;
-        return selectEntry(blog);
+    return getSiteData(contentFile)
+    .then((site) => {
+        loadedSite = site;
+        return selectEntry(site.blog);
     })
-    .then((entry) => editEntryAndSave(loadedBlog, entry))
+    .then((entry) => editEntryAndApply(loadedSite.blog, entry))
+    .then((updatedBlog) => {
+        return {
+            ...loadedSite,
+            blog: updatedBlog
+        } as Site;
+    })
+    .then(saveSite)
+    .then(() => log('Site Updated'))
     .catch((err) => {
         log(`manage: ${err}`);
     }) as Promise<void>;

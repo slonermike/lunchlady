@@ -35,16 +35,16 @@ function getLatest(repo: Repository, branch: string) {
     const repoName = 'origin';
     return new Promise((resolve, reject) => {
         repo.checkoutBranch(branch).then(() => {
-            console.log(`Updating Sloppy Joe from branch: ${branch}`);
+            log(`Updating Sloppy Joe from branch: ${branch}`);
             return repo.fetch(repoName);
         })
         .then(() => {
             const sourceBranch = `${repoName}/${branch}`;
-            console.log(`Merging with ${sourceBranch}`);
+            log(`Merging with ${sourceBranch}`);
             return repo.mergeBranches(branch, sourceBranch);
         })
         .then(() => {
-            console.log("Complete");
+            log("Complete");
             resolve();
         }, reject);
     });

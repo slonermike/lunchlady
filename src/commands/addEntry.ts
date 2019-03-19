@@ -1,6 +1,6 @@
 import { promiseDirectoryExistence, promiseFileExistence, readJSON } from "../utils/File";
-import { Blog } from "../types/blog";
-import { editEntryAndSave } from "./manage";
+import { Blog, Site, emptySite } from "../types/site";
+import { editEntryAndApply, saveSite } from "./manage";
 
 /**
  * Idiotic script for adding blog entries in my idiotic blog.
@@ -34,9 +34,7 @@ export function addEntry(): Promise<void> {
     const htmlFolder = Configuration.getValue('htmlFolder');
 
     // Default structure of file data.
-    let existingData: Blog = {
-        entries: []
-    };
+    let loadedSite: Site = emptySite;
 
     let newFiles = [];
     // Make sure we have the sloppy joe folder available.
@@ -50,7 +48,7 @@ export function addEntry(): Promise<void> {
             return promiseFileExistence(contentFile)
                 // Read it in.
                 .then(readJSON)
-                .then((data) => existingData = data as Blog)
+                .then((data) => loadedSite = data as Site)
                 .catch(() => {
                     Log.log(`${contentFile} does not yet exist.`);
                 });
@@ -63,8 +61,8 @@ export function addEntry(): Promise<void> {
             // Filter out files we've already assigned to an entry.
             newFiles = files.filter((filename) => {
                 // Possible optimization.  O(n^2)
-                if (existingData.entries) {
-                    for (let entry of existingData.entries) {
+                if (loadedSite.blog.entries) {
+                    for (let entry of loadedSite.blog.entries) {
                         if (entry.file === filename) {
                             return false;
                         }
@@ -100,7 +98,14 @@ export function addEntry(): Promise<void> {
 
             return inquirer.prompt(addEntryQuestions)
                 .then(createBarebonesEntry)
-                .then((entry) => editEntryAndSave(existingData, entry))
+                .then((entry) => editEntryAndApply(loadedSite.blog, entry))
+                .then((updatedBlog) => {
+                    return {
+                        ...loadedSite,
+                        blog: updatedBlog
+                    } as Site;
+                })
+                .then(saveSite)
                 .then(() => Log.log("Content update successful."))
                 .catch(Log.log);
         })
