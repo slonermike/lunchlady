@@ -9,9 +9,13 @@ const values: ValueSet = {
     htmlFolder: null,
     sloppyJoeFolder: './sloppy-joe/',
     sloppyJoeOrigin: 'https://github.com/slonermike/sloppy-joe.git',
-    sloppyJoeBranch: 'master',
+    sloppyJoeBranch: 'version/0.1',
     contentFile: 'src/content.json'
-}
+};
+
+const noWriteValues: Record<string, boolean> = {
+    sloppyJoeBranch: true
+};
 
 /**
  * Retrieve a specific value from configuration.
@@ -71,5 +75,13 @@ export function writeValues(newValues?: ValueSet): Promise<void> {
     }
 
     const fullConfigFile = values.configFolder + values.configFile;
-    return FileUtils.writeJSON(fullConfigFile, values);
+
+    const writtenValues: ValueSet = {};
+    for (let key of Object.keys(values)) {
+        if (!noWriteValues[key]) {
+            writtenValues[key] = values[key];
+        }
+    }
+
+    return FileUtils.writeJSON(fullConfigFile, writtenValues);
 }
