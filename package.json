@@ -1,6 +1,6 @@
 {
   "name": "lunchlady",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Serverless blog for those of us without fancy servers.",
   "repository": {
     "type": "git",

@@ -12,7 +12,11 @@ const values: ValueSet = {
     sloppyJoeBranch: 'master',
     contentFile: 'src/content.json',
     maxTagLength: 32
-}
+};
+
+const noWriteValues: Record<string, boolean> = {
+    sloppyJoeBranch: true
+};
 
 /**
  * Retrieve a specific value from configuration.
@@ -72,5 +76,13 @@ export function writeValues(newValues?: ValueSet): Promise<void> {
     }
 
     const fullConfigFile = values.configFolder + values.configFile;
-    return FileUtils.writeJSON(fullConfigFile, values);
+
+    const writtenValues: ValueSet = {};
+    for (let key of Object.keys(values)) {
+        if (!noWriteValues[key]) {
+            writtenValues[key] = values[key];
+        }
+    }
+
+    return FileUtils.writeJSON(fullConfigFile, writtenValues);
 }
