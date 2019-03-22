@@ -5,11 +5,13 @@
 - Animate thingy while fetching from github -- https://github.com/sindresorhus/log-update.
 - Use inquirer's built in answer validation (`validate`) for directory input.
 - Integrate `log-symbols` with Log utility -- https://github.com/sindresorhus/log-symbols.
-- Move all commands into an inquirer-driven selection flow.
 - Set up `scripts` in `package.json` to automatically build and spin up an instance of `sloppy-joe`
 - Add no-sync option to `lunchlady setup`?  Only needs to run once, so might not be necessary.  Useful for offline development.
-- Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
-- Delete command in `lunchlady manage` (with confirmation)
+- Command: Add page
+- Ability to add blog entries to a specific page.
+- Ability to edit blog entries on a specific page.
+- Command: Delete entry
+- Command: Delete page
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -17,6 +19,21 @@
 - Should I disallow spaces on tags?  Might make it nicer for deeplinks.
 - Locally-run web interface?  There are rich text editors out there that could be utilized.
 - Automatically go into tag creation if no tags exist yet.
+- Browse the site in CLI
+  - Page
+    - [Add Entry]
+    - Entry
+      - Edit
+      - Delete
+    - Entry
+      - Edit
+      - Delete
+  - Page
+    - [Add Entry]
+    - Entry
+      - Edit
+      - Delete
+    - etc.
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
@@ -30,6 +47,13 @@
 - If you run `luchlady manage` before `lunchlady add` it gives insufficient rectification instructions.
 
 # Releases
+
+## v0.2.0
+Multi-page sites.
+
+### Features
+- Move all commands into an inquirer-driven selection flow.
+- Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
 
 ## v0.1.0
 Making it useful.  Documenting the process.
