@@ -227,7 +227,7 @@ export function saveSite(site: Site) {
 /**
  * Manage the blog at a high level.
  */
-export function manage(): Promise<void> {
+export function editBlog(): Promise<void> {
     const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
     let loadedSite: Site;
 

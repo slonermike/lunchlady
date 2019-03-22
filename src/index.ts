@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { getsloppy } from './commands/getsloppy';
 import { addEntry } from './commands/addEntry';
-import { manage } from './commands/manage';
+import { editBlog } from './commands/manage';
 import { setup } from './commands/setup';
 import { log } from './utils/Log';
 import { loadValues, getValue } from './modules/configuration';
+import { mainMenu } from './commands/mainMenu';
 
 interface AppCommand {
     cmd: () => Promise<void>;
@@ -24,6 +25,10 @@ const printInstructions = function (): Promise<void> {
 }
 
 commands = {
+    'default': {
+        cmd: mainMenu,
+        description: 'Interactive menu for managing your site.'
+    },
     'get-sloppy': {
         cmd: () => getsloppy(getValue('sloppyJoeFolder'), getValue('sloppyJoeOrigin'), getValue('sloppyJoeBranch')),
         description: 'Initialize or update the Sloppy Joe code.'
@@ -36,8 +41,8 @@ commands = {
         cmd: addEntry,
         description: 'Create a new blog entry from the existing html files in the content folder.'
     },
-    'manage': {
-        cmd: manage,
+    'edit': {
+        cmd: editBlog,
         description: 'Make edits to existing entries.'
     },
     'help': {
@@ -48,7 +53,7 @@ commands = {
 
 let command = process.argv[2];
 if (!command || !commands[command]) {
-    command = 'help';
+    command = 'default';
 }
 
 loadValues()
