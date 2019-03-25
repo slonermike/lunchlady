@@ -99,7 +99,10 @@ export function setup(): Promise<void> {
     const repoFolder = getValue('sloppyJoeFolder')
 
     // Link the directory if it doesn't exist.
-    return getsloppy(repoFolder, remoteUrl, branch).then(linkHtmlDirectory).catch(log);
+    return getsloppy(repoFolder, remoteUrl, branch)
+    .then(linkHtmlDirectory)
+    .then(() => log('Setup Complete!'))
+    .catch(log);
 }
 
 export default setup;

@@ -10,7 +10,7 @@ const values: ValueSet = {
     sloppyJoeFolder: './sloppy-joe/',
     sloppyJoeOrigin: 'https://github.com/slonermike/sloppy-joe.git',
     sloppyJoeBranch: 'version/0.2',
-    contentFile: 'src/content.json',
+    contentFile: 'content.json',
     maxTagLength: 32
 };
 

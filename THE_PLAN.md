@@ -23,20 +23,6 @@
 - Automatically go into tag creation if no tags exist yet.
 - Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
 - Browse the site in CLI
-  - Page
-    - [Add Entry]
-    - Entry
-      - Edit
-      - Delete
-    - Entry
-      - Edit
-      - Delete
-  - Page
-    - [Add Entry]
-    - Entry
-      - Edit
-      - Delete
-    - etc.
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
@@ -48,6 +34,7 @@
 # Known Issues
 - If you try to re-run `lunchlady setup` it will not allow you to change your source content folder.
 - If you run `luchlady manage` before `lunchlady add` it gives insufficient rectification instructions.
+- Initial run of `lunchlady setup` fails to sync branches other than `master`
 
 # Releases
 
@@ -55,7 +42,7 @@
 Multi-page sites.
 
 ### Features
-- Move all commands into an inquirer-driven selection flow.
+- Move all commands (except `setup`) into an inquirer-driven selection flow.
 - Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
 - All content management promises resolve to an updated copy of the whole site.
 
