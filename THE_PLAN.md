@@ -13,6 +13,7 @@
 - Command: Delete entry
 - Command: Delete page
 - Command: `lunchlady nuke` which resets the content json file to an empty site.
+- Move content.json into HTML for more centralized content management.
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -56,6 +57,7 @@ Multi-page sites.
 ### Features
 - Move all commands into an inquirer-driven selection flow.
 - Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
+- All content management promises resolve to an updated copy of the whole site.
 
 ## v0.1.0
 Making it useful.  Documenting the process.

@@ -1,5 +1,5 @@
 import { getValue } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType } from "../utils/File";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON } from "../utils/File";
 import { Site, emptySite, SiteSection } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt } from "inquirer";
@@ -13,6 +13,10 @@ const paramCase = require('param-case');
  */
 function getSiteData(contentFile: string): Promise<Site> {
     return promiseFileExistence(contentFile).then((filename) => readJSON(filename) as Promise<Site>);
+}
+
+function saveSite(site: Site, filename: string) {
+    return writeJSON(filename, site);
 }
 
 function addSection(site: Site): Promise<Site> {
@@ -89,9 +93,8 @@ function manageSiteTop(site: Site): Promise<Site> {
     })
 }
 
-export function manageContent() {
+export function manageContent(): Promise<Site> {
     const contentFile = getValue('sloppyJoeFolder') + getValue('contentFile');
-    let loadedSite: Site;
 
     return getSiteData(contentFile)
     .catch((err: FileError) => {
@@ -104,8 +107,9 @@ export function manageContent() {
             ...emptySite
         } as Site;
     })
+    .then(manageSiteTop)
     .then((site) => {
-        loadedSite = site;
-        return site;
-    }).then(manageSiteTop);
+        return saveSite(site, contentFile)
+        .then(() => site);
+    });
 }
