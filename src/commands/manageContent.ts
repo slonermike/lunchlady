@@ -203,10 +203,10 @@ function addNewTags(site: Site, entryKey: string, state: AddState = 'start'): Pr
  * @param site Site in which to edit the article.
  * @param articleKey Article to edit.
  */
-function editArticle(site: Site, articleKey: string): Promise<Site> {
-    const tags = getTags(site);
+function editArticle(inputSite: Site, articleKey: string): Promise<Site> {
+    const tags = getTags(inputSite);
     tags.push(ADD_TAG_VALUE);
-    const entry = site.entries[articleKey];
+    const entry = inputSite.entries[articleKey];
 
     const questions: (Question | { format?: string[] })[] = [
         {
@@ -240,7 +240,7 @@ function editArticle(site: Site, articleKey: string): Promise<Site> {
         }
 
         const newEntries: Record<string, BlogEntry> = {
-            ...site.entries
+            ...inputSite.entries
         };
         newEntries[articleKey] = {
             ...entry,
@@ -250,12 +250,12 @@ function editArticle(site: Site, articleKey: string): Promise<Site> {
         };
 
         const newSite = {
-            ...site,
+            ...inputSite,
             entries: newEntries
         };
 
         if (wantsNewTags) {
-            return addNewTags(site, articleKey);
+            return addNewTags(newSite, articleKey);
         } else {
             return newSite;
         }
@@ -267,11 +267,12 @@ function editArticle(site: Site, articleKey: string): Promise<Site> {
  *
  * @param site Site to which the article will be added.
  */
-function addArticle(site: Site, sectionKey: string): Promise<Site> {
+function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
     const htmlFolder = getValue('htmlFolder');
+    let newEntryKey;
     return getFilesOfType(htmlFolder, supportedFileTypes)
     .then((allFiles) => {
-        const existingEntries = entriesAsKvps(site);
+        const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {
             return existingEntries.findIndex((kvp) => kvp.value.file === file) < 0;
         });
@@ -279,7 +280,7 @@ function addArticle(site: Site, sectionKey: string): Promise<Site> {
         if (unusedFiles.length === 0) {
             // TODO: make this stand out better with red text, or a red x or something.
             log('No new entry files found in HTML dirctory.');
-            return site;
+            return ogSite;
         }
 
         const addEntryQ: Question = {
@@ -295,8 +296,8 @@ function addArticle(site: Site, sectionKey: string): Promise<Site> {
             const noExtension = filename.replace(/\.[^/.]+$/, "");
             const keyName = paramCase(noExtension);
 
-            const alreadyExists = !!site.entries[keyName];
-            assert(!alreadyExists, `Key (${keyName}) collision on file ${filename} and ${site.entries[keyName] && site.entries[keyName].file}`);
+            const alreadyExists = !!ogSite.entries[keyName];
+            assert(!alreadyExists, `Key (${keyName}) collision on file ${filename} and ${ogSite.entries[keyName] && ogSite.entries[keyName].file}`);
             const newEntry = {
                 ...emptyEntry
             };
@@ -308,21 +309,28 @@ function addArticle(site: Site, sectionKey: string): Promise<Site> {
             // TODO: this seems really messy.  Is there a better way to prevent overwrite of the existing site object?
             const newSite: Site = {
                 entries: {
-                    ...site.entries
+                    ...ogSite.entries
                 },
                 sections: {
-                    ...site.sections
+                    ...ogSite.sections
                 }
             };
             newSite.sections[sectionKey] = {
                 ...newSite.sections[sectionKey]
             };
 
+            newEntryKey = keyName;
             newSite.entries[keyName] = newEntry;
             newSite.sections[sectionKey].entries.unshift(keyName);
 
             return newSite;
-        })
+        }).then((site) => {
+            if (newEntryKey) {
+                return editArticle(site, newEntryKey);
+            } else {
+                return site;
+            }
+        });
     });
 }
 
@@ -337,18 +345,18 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
         type: 'list',
         name: 'articleKey',
         message: 'Choose Article',
-        choices: site.sections[sectionKey].entries.map((entryKey) => {
+        choices: ([
+            {
+                value: 'add-new',
+                name: '[Add New Article]'
+            }
+        ]).concat(site.sections[sectionKey].entries.map((entryKey) => {
             const entry: BlogEntry = site.entries[entryKey];
             return {
                 value: entryKey,
                 name: entry.title
             };
-        }).concat([
-            {
-                value: 'add-new',
-                name: '[Add New Article]'
-            }
-        ])
+        }))
     };
 
     return prompt([articlePickerQ])
@@ -419,7 +427,8 @@ export function manageContent(): Promise<Site> {
         const newSite: Site = {
             ...emptySite
         };
-        saveSite(newSite, contentFile)
+
+        return saveSite(newSite, contentFile)
         .then(() => newSite);
     })
     .then(manageSiteTop)
