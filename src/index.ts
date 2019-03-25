@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 import { getsloppy } from './commands/getsloppy';
-import { addEntry } from './commands/addEntry';
-import { editBlog } from './commands/manage';
 import { setup } from './commands/setup';
 import { log } from './utils/Log';
 import { loadValues, getValue } from './modules/configuration';
@@ -26,7 +24,7 @@ const printInstructions = function (): Promise<void> {
 
 commands = {
     'default': {
-        cmd: mainMenu,
+        cmd: mainMenu as () => Promise<never>,
         description: 'Interactive menu for managing your site.'
     },
     'get-sloppy': {
@@ -36,14 +34,6 @@ commands = {
     'setup': {
         cmd: setup,
         description: 'Set up Sloppy Joe and link it to the local HTML folder for your blog entries.'
-    },
-    'add': {
-        cmd: addEntry,
-        description: 'Create a new blog entry from the existing html files in the content folder.'
-    },
-    'edit': {
-        cmd: editBlog,
-        description: 'Make edits to existing entries.'
     },
     'help': {
         cmd: printInstructions,

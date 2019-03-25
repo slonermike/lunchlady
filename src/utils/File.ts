@@ -1,5 +1,24 @@
 import * as fs from 'fs';
 
+export class FileError {
+    public type: FileErrorType;
+    public message: string;
+
+    constructor(type: FileErrorType, message: string) {
+        this.type = type;
+        this.message = message;
+    }
+
+    public toString() {
+        return `Error ${this.type}: ${this.message}`;
+    }
+}
+
+export enum FileErrorType {
+    DOES_NOT_EXIST,
+    READ_ERROR
+}
+
 /**
  * Check if a file already exists.
  * Resolves to true if the file exists, false if not.
@@ -26,7 +45,10 @@ export function promiseDirectoryExistence(dirname: string, createIfMissing: bool
             } else if (createIfMissing) {
                 mkdir(dirname).then(resolve).catch(reject)
             } else {
-                reject(`Directory does not exist: ${dirname}`)
+                reject(new FileError(
+                    FileErrorType.DOES_NOT_EXIST,
+                    `File does not exist: ${dirname}`
+                ));
             }
         });
     });
@@ -44,7 +66,10 @@ export function promiseFileExistence(filename): Promise<string> {
             if (exists)
                 resolve(filename);
             else {
-                reject(`File does not exist: ${filename}`);
+                reject(new FileError(
+                    FileErrorType.DOES_NOT_EXIST,
+                    `File does not exist: ${filename}`
+                ));
             }
         });
     });
@@ -61,7 +86,10 @@ export function getFilesOfType(directory: string, fileTypeRegex: RegExp): Promis
     return new Promise((resolve, reject) => {
         fs.readdir(directory, (err, files) => {
             if (err) {
-                reject(err);
+                reject(new FileError(
+                    FileErrorType.READ_ERROR,
+                    `Read Error: ${err}`
+                ));
             } else {
                 // Filter out files that don't match the regex.
                 const finalList = files.filter((filename) => {
