@@ -1,26 +1,42 @@
 export interface Site {
-    blog: Blog;
-    sections: SiteSection[];
+    sections: Record<string, Blog>;
+    entries: Record<string, BlogEntry>;
 }
-
-export const emptySite: Site = {
-    blog: {
-        entries: []
-    },
-    sections: []
-};
 
 export interface SiteSection {
     name: string;
+    keyName: string;
 }
 
 export interface Blog {
-    entries: BlogEntry[];
+    name: string;
+    keyName: string;
+    entries: string[];
 }
 
 export interface BlogEntry {
     file: string,
     title: string,
+    keyName: string,
     tags: string[],
     date: Date
 }
+
+export const emptySite: Site = {
+    sections: {},
+    entries: {}
+};
+
+export const emptyBlog: Blog = {
+    name: '',
+    keyName: '',
+    entries: []
+};
+
+export const emptyEntry: BlogEntry = {
+    file: '',
+    keyName: '',
+    title: '',
+    tags: [],
+    date: new Date()
+};

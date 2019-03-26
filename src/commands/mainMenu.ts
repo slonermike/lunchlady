@@ -1,9 +1,8 @@
 import { prompt, Question } from 'inquirer';
 
 import { log } from '../utils/Log';
-import { editBlog } from './manage';
-import { addEntry } from './addEntry';
 import { getsloppy } from './getsloppy';
+import { manageContent } from './manageContent';
 import { getValue } from '../modules/configuration'
 
 export function mainMenu(): Promise<void> {
@@ -14,16 +13,12 @@ export function mainMenu(): Promise<void> {
             message: "Lunchlady says, \'wuddya want?\'",
             choices: [
                 {
-                    name: 'Add Blog Entry',
-                    value: addEntry
-                },
-                {
-                    name: 'Update Blog Entry',
-                    value: editBlog
-                },
-                {
                     name: 'Fetch/Update Sloppy Joe Blog Client',
                     value: () => getsloppy(getValue('sloppyJoeFolder'), getValue('sloppyJoeOrigin'), getValue('sloppyJoeBranch'))
+                },
+                {
+                    name: 'Manage Content',
+                    value: manageContent
                 },
                 {
                     name: 'Quit'

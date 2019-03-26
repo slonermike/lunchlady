@@ -12,6 +12,8 @@
 - Ability to edit blog entries on a specific page.
 - Command: Delete entry
 - Command: Delete page
+- Command: `lunchlady nuke` which resets the content json file to an empty site.
+- Move content.json into HTML for more centralized content management.
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -19,21 +21,8 @@
 - Should I disallow spaces on tags?  Might make it nicer for deeplinks.
 - Locally-run web interface?  There are rich text editors out there that could be utilized.
 - Automatically go into tag creation if no tags exist yet.
+- Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
 - Browse the site in CLI
-  - Page
-    - [Add Entry]
-    - Entry
-      - Edit
-      - Delete
-    - Entry
-      - Edit
-      - Delete
-  - Page
-    - [Add Entry]
-    - Entry
-      - Edit
-      - Delete
-    - etc.
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
@@ -45,6 +34,7 @@
 # Known Issues
 - If you try to re-run `lunchlady setup` it will not allow you to change your source content folder.
 - If you run `luchlady manage` before `lunchlady add` it gives insufficient rectification instructions.
+- Initial run of `lunchlady setup` fails to sync branches other than `master`
 
 # Releases
 
@@ -52,8 +42,9 @@
 Multi-page sites.
 
 ### Features
-- Move all commands into an inquirer-driven selection flow.
+- Move all commands (except `setup`) into an inquirer-driven selection flow.
 - Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
+- All content management promises resolve to an updated copy of the whole site.
 
 ## v0.1.0
 Making it useful.  Documenting the process.

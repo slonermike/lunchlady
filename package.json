@@ -18,7 +18,8 @@
     "inquirer-datepicker": "^1.0.0",
     "inquirer-path": "^1.0.0-beta5",
     "nodegit": "^0.24.1",
-    "param-case": "^2.1.1"
+    "param-case": "^2.1.1",
+    "title-case": "^2.1.1"
   },
   "devDependencies": {
     "@types/inquirer": "0.0.44",
