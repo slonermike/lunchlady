@@ -1,9 +1,11 @@
 import { getValue } from "../modules/configuration";
 import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType } from "../utils/File";
-import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry } from "../types/site";
+import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
 import * as assert from 'assert';
+import { migrateSiteData } from "../modules/migration";
+import { formatDateTime } from "../modules/date";
 
 const paramCase = require('param-case');
 const titleCase = require('title-case');
@@ -23,7 +25,10 @@ const MAX_TAG_LENGTH = 32;
  * @param contentFile File from which to load the blog data.
  */
 function getSiteData(contentFile: string): Promise<Site> {
-    return promiseFileExistence(contentFile).then((filename) => readJSON(filename) as Promise<Site>);
+    return promiseFileExistence(contentFile)
+    .then(readJSON)
+    .then(parseSite)
+    .then(migrateSiteData);
 }
 
 /**
@@ -263,6 +268,47 @@ function editArticle(inputSite: Site, articleKey: string): Promise<Site> {
 }
 
 /**
+ * If the entries are to be sorted by date, update the order by their dates.
+ *
+ * @param inputSite Site where the articles live.
+ * @param sectionKey Section to re-order.
+ */
+function autoSortEntries(inputSite: Site, sectionKey: string): Site {
+    const section = inputSite.sections[sectionKey];
+    const orderType = section.entryOrder || EntryOrder.DATE;
+    if (orderType !== EntryOrder.DATE) {
+        return inputSite;
+    }
+
+    const newEntries: string[] = [
+        ...section.entries
+    ];
+    newEntries.sort((key1, key2) => {
+        const entry1 = inputSite.entries[key1];
+        const entry2 = inputSite.entries[key2];
+        log(`Type of date1: ${entry1.date.constructor.name}, date2: ${typeof entry2.date.constructor.name}`);
+        return entry2.date.getTime() - entry1.date.getTime();
+    });
+
+    const newSection: Blog = {
+        ...section
+    };
+    newSection.entries = newEntries;
+
+    const newSections: Record<string, Blog> = {
+        ...inputSite.sections
+    };
+
+    newSections[sectionKey] = newSection;
+    const newSite: Site = {
+        ...inputSite,
+        sections: newSections
+    };
+
+    return newSite;
+}
+
+/**
  * Add an article to a section in the site.
  *
  * @param site Site to which the article will be added.
@@ -308,6 +354,7 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
 
             // TODO: this seems really messy.  Is there a better way to prevent overwrite of the existing site object?
             const newSite: Site = {
+                ...ogSite,
                 entries: {
                     ...ogSite.entries
                 },
@@ -326,7 +373,7 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
             return newSite;
         }).then((site) => {
             if (newEntryKey) {
-                return editArticle(site, newEntryKey);
+                return editArticle(site, newEntryKey).then((site) => autoSortEntries(site, sectionKey));
             } else {
                 return site;
             }
@@ -341,20 +388,28 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
  */
 function manageSection(site: Site, sectionKey: string): Promise<Site> {
     log(`Managing Section: ${sectionKey}`);
+    const entryOrder = site.sections[sectionKey].entryOrder;
     const articlePickerQ: Question = {
         type: 'list',
         name: 'articleKey',
         message: 'Choose Article',
+        // TODO: make the hard-coded choices numbers so they won't
+        // clash with string article IDs.
         choices: ([
             {
                 value: 'add-new',
                 name: '[Add New Article]'
+            },
+            {
+                value: 'cancel',
+                name: '[Cancel]'
             }
         ]).concat(site.sections[sectionKey].entries.map((entryKey) => {
             const entry: BlogEntry = site.entries[entryKey];
+            const name = entryOrder === EntryOrder.DATE ? `${formatDateTime(entry.date)} - ${entry.title}` : entry.title;
             return {
                 value: entryKey,
-                name: entry.title
+                name
             };
         }))
     };
@@ -363,9 +418,14 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
     .then(answers => {
         const { articleKey } = answers;
         if (articleKey === 'add-new') {
-            return addArticle(site, sectionKey);
+            return addArticle(site, sectionKey)
+            .then((site) => manageSection(site, sectionKey));
+        } else if (articleKey === 'cancel') {
+            return site;
         } else if (site.entries[articleKey]) {
-            return editArticle(site, articleKey);
+            return editArticle(site, articleKey)
+            .then((site) => autoSortEntries(site, sectionKey))
+            .then((site) => manageSection(site, sectionKey));
         }
         return site;
     });
@@ -389,6 +449,10 @@ function manageSiteTop(site: Site): Promise<Site> {
             {
                 value: 'add-new',
                 name: '[Add New Section]'
+            },
+            {
+                value: 'cancel',
+                name: '[Cancel]'
             }
         ])
     };
@@ -398,9 +462,13 @@ function manageSiteTop(site: Site): Promise<Site> {
 
         // TODO: make this a variable.
         if (chosenSection === 'add-new') {
-            return addSection(site);
+            return addSection(site)
+            .then((site) => manageSiteTop(site));
+        } else if (chosenSection === 'cancel') {
+            return site;
         } else if (site.sections[chosenSection]) {
-            return manageSection(site, chosenSection);
+            return manageSection(site, chosenSection)
+            .then((site) => manageSiteTop(site));
         } else {
             log(`Unknown section: ${chosenSection}`);
         }
