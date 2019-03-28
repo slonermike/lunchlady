@@ -1,19 +1,16 @@
 # Planned Improvements
-- De-spaghetti `lunchlady add` code.
-- Change `updateEntry` so it no longer updates state in place.
 - Allow user to specify client code destination directory.
 - Animate thingy while fetching from github -- https://github.com/sindresorhus/log-update.
 - Use inquirer's built in answer validation (`validate`) for directory input.
 - Integrate `log-symbols` with Log utility -- https://github.com/sindresorhus/log-symbols.
 - Set up `scripts` in `package.json` to automatically build and spin up an instance of `sloppy-joe`
 - Add no-sync option to `lunchlady setup`?  Only needs to run once, so might not be necessary.  Useful for offline development.
-- Command: Add page
-- Ability to add blog entries to a specific page.
-- Ability to edit blog entries on a specific page.
 - Command: Delete entry
 - Command: Delete page
 - Command: `lunchlady nuke` which resets the content json file to an empty site.
-- Move content.json into HTML for more centralized content management.
+- Ability to manually reorder sections. (https://github.com/adam-golab/inquirer-select-line)
+- Rename everything 'blog' to 'section'
+- Rename everything 'article' to 'entry'
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -45,6 +42,13 @@ Multi-page sites.
 - Move all commands (except `setup`) into an inquirer-driven selection flow.
 - Link `sloppy-joe` repo to a specific, supported SHA, or branch (preferred).
 - All content management promises resolve to an updated copy of the whole site.
+- Added versioning, migration for the output file.
+- Auto-sort entries by date.
+- Added sort type to sections
+- Ability to add entries to a specific page.
+- Command: Add page
+- Ability to edit blog entries on a specific page.
+- Move content.json into HTML for more centralized content management.
 
 ## v0.1.0
 Making it useful.  Documenting the process.
