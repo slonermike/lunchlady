@@ -21,6 +21,8 @@
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
+- Does immutability really matter?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
+  - If so, then immutability should be enforced, at least in certain builds.
 
 # Challenges Ahead
 - How do we handle images?

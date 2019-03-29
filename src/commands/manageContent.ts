@@ -19,6 +19,12 @@ const supportedFileTypes = (/\.(htm|html)$/i);
 /** Maximum length for a tag. */
 const MAX_TAG_LENGTH = 32;
 
+enum MenuChoice {
+    ADD_NEW,
+    CANCEL,
+    CHANGE_ORDER
+};
+
 /**
  * Load the blog data from JSON.
  *
@@ -393,17 +399,15 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
         type: 'list',
         name: 'articleKey',
         message: 'Choose Article',
-        // TODO: make the hard-coded choices numbers so they won't
-        // clash with string article IDs.
         choices: ([
             {
-                value: 'add-new',
+                value: MenuChoice.ADD_NEW,
                 name: '[Add New Article]'
-            },
+            } as Question,
             {
-                value: 'cancel',
+                value: MenuChoice.CANCEL,
                 name: '[Cancel]'
-            }
+            } as Question
         ]).concat(site.sections[sectionKey].entries.map((entryKey) => {
             const entry: BlogEntry = site.entries[entryKey];
             const name = entryOrder === EntryOrder.DATE ? `${formatDateTime(entry.date)} - ${entry.title}` : entry.title;
@@ -417,10 +421,10 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
     return prompt([articlePickerQ])
     .then(answers => {
         const { articleKey } = answers;
-        if (articleKey === 'add-new') {
+        if (articleKey === MenuChoice.ADD_NEW) {
             return addArticle(site, sectionKey)
             .then((site) => manageSection(site, sectionKey));
-        } else if (articleKey === 'cancel') {
+        } else if (articleKey === MenuChoice.CANCEL) {
             return site;
         } else if (site.entries[articleKey]) {
             return editArticle(site, articleKey)
@@ -444,27 +448,25 @@ function manageSiteTop(site: Site): Promise<Site> {
             return {
                 value: key,
                 name: site.sections[key].name
-            }
+            } as Question;
         }).concat([
             {
-                value: 'add-new',
+                value: MenuChoice.ADD_NEW,
                 name: '[Add New Section]'
-            },
+            } as Question,
             {
-                value: 'cancel',
+                value: MenuChoice.CANCEL,
                 name: '[Cancel]'
-            }
+            } as Question
         ])
     };
 
     return prompt([sectionPickerQ]).then((answers) => {
         const chosenSection = answers['section'];
-
-        // TODO: make this a variable.
-        if (chosenSection === 'add-new') {
+        if (chosenSection === MenuChoice.ADD_NEW) {
             return addSection(site)
             .then((site) => manageSiteTop(site));
-        } else if (chosenSection === 'cancel') {
+        } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
         } else if (site.sections[chosenSection]) {
             return manageSection(site, chosenSection)
