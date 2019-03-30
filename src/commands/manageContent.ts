@@ -19,6 +19,14 @@ const supportedFileTypes = (/\.(htm|html)$/i);
 /** Maximum length for a tag. */
 const MAX_TAG_LENGTH = 32;
 
+type MenuValue = string | MenuChoice;
+
+enum MenuChoice {
+    ADD_NEW,
+    CANCEL,
+    CHANGE_ORDER
+};
+
 /**
  * Load the blog data from JSON.
  *
@@ -309,6 +317,42 @@ function autoSortEntries(inputSite: Site, sectionKey: string): Site {
 }
 
 /**
+ *
+ * @param site Site being updated.
+ * @param sectionKey Section which is changing sort method.
+ */
+export function changeSectionSort(site: Site, sectionKey: string): Promise<Site> {
+    const choices = [
+        {
+            value: EntryOrder.DATE,
+            name: 'Date'
+        },
+        {
+            value: EntryOrder.MANUAL,
+            name: 'Manual'
+        },
+    ];
+    const questions = [{
+        type: 'list',
+        name: 'order',
+        choices,
+        message: `Sort Method for :${site.sections[sectionKey].name}`
+    }];
+
+    return prompt(questions).then(answers => {
+        const newSite = {
+            ...site,
+            sections: {
+                ...site.sections
+             }
+        } as Site;
+
+        newSite.sections[sectionKey].entryOrder = answers['order'];
+        return autoSortEntries(site, sectionKey);
+    });
+}
+
+/**
  * Add an article to a section in the site.
  *
  * @param site Site to which the article will be added.
@@ -389,26 +433,29 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
 function manageSection(site: Site, sectionKey: string): Promise<Site> {
     log(`Managing Section: ${sectionKey}`);
     const entryOrder = site.sections[sectionKey].entryOrder;
+
     const articlePickerQ: Question = {
         type: 'list',
-        name: 'articleKey',
+        name: 'userInput',
         message: 'Choose Article',
-        // TODO: make the hard-coded choices numbers so they won't
-        // clash with string article IDs.
         choices: ([
             {
-                value: 'add-new',
-                name: '[Add New Article]'
+                value: MenuChoice.ADD_NEW as MenuValue,
+                name: '[New Article]'
             },
             {
-                value: 'cancel',
-                name: '[Cancel]'
+                value: MenuChoice.CHANGE_ORDER as MenuValue,
+                name: '[Sort Order]'
+            },
+            {
+                value: MenuChoice.CANCEL as MenuValue,
+                name: '[Back]'
             }
         ]).concat(site.sections[sectionKey].entries.map((entryKey) => {
             const entry: BlogEntry = site.entries[entryKey];
             const name = entryOrder === EntryOrder.DATE ? `${formatDateTime(entry.date)} - ${entry.title}` : entry.title;
             return {
-                value: entryKey,
+                value: entryKey as MenuValue,
                 name
             };
         }))
@@ -416,14 +463,17 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
 
     return prompt([articlePickerQ])
     .then(answers => {
-        const { articleKey } = answers;
-        if (articleKey === 'add-new') {
+        const { userInput } = answers;
+        if (userInput === MenuChoice.ADD_NEW) {
             return addArticle(site, sectionKey)
             .then((site) => manageSection(site, sectionKey));
-        } else if (articleKey === 'cancel') {
+        } else if (userInput === MenuChoice.CHANGE_ORDER) {
+            return changeSectionSort(site, sectionKey)
+            .then((site) => manageSection(site, sectionKey));
+        } else if (userInput === MenuChoice.CANCEL) {
             return site;
-        } else if (site.entries[articleKey]) {
-            return editArticle(site, articleKey)
+        } else if (site.entries[userInput]) {
+            return editArticle(site, userInput)
             .then((site) => autoSortEntries(site, sectionKey))
             .then((site) => manageSection(site, sectionKey));
         }
@@ -442,16 +492,16 @@ function manageSiteTop(site: Site): Promise<Site> {
         message: 'Manage Site',
         choices: Object.keys(site.sections).map((key) => {
             return {
-                value: key,
+                value: key as MenuValue,
                 name: site.sections[key].name
-            }
+            };
         }).concat([
             {
-                value: 'add-new',
-                name: '[Add New Section]'
+                value: MenuChoice.ADD_NEW as MenuValue,
+                name: '[New Section]'
             },
             {
-                value: 'cancel',
+                value: MenuChoice.CANCEL as MenuValue,
                 name: '[Cancel]'
             }
         ])
@@ -459,12 +509,10 @@ function manageSiteTop(site: Site): Promise<Site> {
 
     return prompt([sectionPickerQ]).then((answers) => {
         const chosenSection = answers['section'];
-
-        // TODO: make this a variable.
-        if (chosenSection === 'add-new') {
+        if (chosenSection === MenuChoice.ADD_NEW) {
             return addSection(site)
             .then((site) => manageSiteTop(site));
-        } else if (chosenSection === 'cancel') {
+        } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
         } else if (site.sections[chosenSection]) {
             return manageSection(site, chosenSection)

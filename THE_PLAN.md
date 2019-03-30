@@ -15,14 +15,14 @@
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
 - Ability to spin up the `sloppy-joe` server via a `lunchlady` command -- e.g. `lunchlady start`
-- Should I disallow spaces on tags?  Might make it nicer for deeplinks.
 - Locally-run web interface?  There are rich text editors out there that could be utilized.
 - Automatically go into tag creation if no tags exist yet.
 - Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
-- Browse the site in CLI
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
+- Does immutability really matter?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
+  - If so, then immutability should be enforced, at least in certain builds.
 
 # Challenges Ahead
 - How do we handle images?
