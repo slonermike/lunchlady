@@ -18,6 +18,7 @@
 - Locally-run web interface?  There are rich text editors out there that could be utilized.
 - Automatically go into tag creation if no tags exist yet.
 - Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
+- Make a manual sort inquirer plugin.
 
 # Open Questions
 - What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?

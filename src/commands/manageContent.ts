@@ -22,6 +22,7 @@ const MAX_TAG_LENGTH = 32;
 type MenuValue = string | MenuChoice;
 
 enum MenuChoice {
+    NIL,
     ADD_NEW,
     CANCEL,
     CHANGE_ORDER
@@ -275,6 +276,56 @@ function editArticle(inputSite: Site, articleKey: string): Promise<Site> {
     })
 }
 
+function manuallySortEntries(site: Site, sectionKey: string): Promise<Site> {
+    const choices = site.sections[sectionKey].entries.map((entryKey) => {
+        return {
+            value: entryKey as MenuValue,
+            name: site.entries[entryKey].title
+        };
+    });
+
+    const question: Question = {
+        type: 'list',
+        name: 'articleKey',
+        message: 'Choose Article',
+        choices
+    };
+
+    return prompt([question])
+    .then(answers => {
+        const chosenValue: MenuValue = answers['articleKey'];
+        if (chosenValue !== MenuChoice.CANCEL) {
+            const lessChoices = [...choices];
+            const foundIndex = lessChoices.findIndex((choice) => {
+                return choice.value === chosenValue;
+            });
+            assert(foundIndex >= 0);
+            lessChoices.splice(foundIndex, 1);
+            const selectedTitle = site.entries[chosenValue].title;
+
+            const reorderQ: Question = {
+                type: 'list',
+                message: `Place \'${selectedTitle}\' after which article?`,
+                name: 'afterKey',
+                choices: [
+                    {
+                        value: MenuChoice.NIL as MenuValue,
+                        name: '[First]'
+                    }
+                ].concat(lessChoices)
+            };
+
+            return prompt([reorderQ])
+            .then((answers) => {
+                log(`Answers: ${JSON.stringify(answers)}`);
+                return site;
+            });
+        } else {
+            return site;
+        }
+    })
+}
+
 /**
  * If the entries are to be sorted by date, update the order by their dates.
  *
@@ -348,7 +399,12 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
         } as Site;
 
         newSite.sections[sectionKey].entryOrder = answers['order'];
-        return autoSortEntries(site, sectionKey);
+
+        if (answers['order'] === EntryOrder.DATE) {
+            return autoSortEntries(site, sectionKey);
+        } else {
+            return manuallySortEntries(site, sectionKey);
+        }
     });
 }
 
