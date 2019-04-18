@@ -75,6 +75,49 @@ export function promiseFileExistence(filename): Promise<string> {
     });
 }
 
+function isDirectory(file: string): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+        fs.stat(file, (err, stats) => {
+            if (err) {
+                reject(err);
+            } else if (stats.isDirectory()) {
+                resolve(file);
+            } else {
+                resolve(null);
+            }
+        })
+    })
+}
+
+/**
+ * Get all directories in the specified directory.
+ *
+ * @param directory Directory in which to search.
+ */
+export function getDirectories(directory: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+        fs.readdir(directory, (err, files) => {
+            if (err) {
+                reject(new FileError(
+                    FileErrorType.READ_ERROR,
+                    `Read Error: ${err}`
+                ));
+            } else {
+                const dirPromises: Promise<string | null>[] = [];
+                files.forEach((file) => {
+                    const fullFile = `${directory}${file}`;
+                    dirPromises.push(isDirectory(fullFile));
+                });
+                Promise.all(dirPromises).then(dirs => {
+                    const validDirs = [];
+                    dirs.forEach((dir) => dir ? validDirs.push(dir) : null);
+                    resolve(validDirs);
+                });
+            }
+        })
+    });
+}
+
 /**
  * Retrieve files from a directory for which the filename matches the provided
  * regular expression.

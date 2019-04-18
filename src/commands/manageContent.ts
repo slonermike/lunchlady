@@ -1,5 +1,5 @@
 import { getValue } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType } from "../utils/File";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType, getDirectories } from "../utils/File";
 import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
@@ -445,7 +445,9 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
 function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
     const htmlFolder = getValue('htmlFolder');
     let newEntryKey;
-    return getFilesOfType(htmlFolder, supportedFileTypes)
+    return getDirectories(htmlFolder).then((dirs) => {
+        console.log(`Directories: ${JSON.stringify(dirs)}`);
+    }).then(() => getFilesOfType(htmlFolder, supportedFileTypes))
     .then((allFiles) => {
         const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {

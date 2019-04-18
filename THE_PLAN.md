@@ -8,7 +8,6 @@
 - Command: Delete entry
 - Command: Delete page
 - Command: `lunchlady nuke` which resets the content json file to an empty site.
-- Ability to manually reorder sections. (https://github.com/adam-golab/inquirer-select-line)
 - Rename everything 'blog' to 'section'
 - Rename everything 'article' to 'entry'
 
@@ -50,6 +49,7 @@ Multi-page sites.
 - Command: Add page
 - Ability to edit blog entries on a specific page.
 - Move content.json into HTML for more centralized content management.
+- Ability to manually reorder sections.
 
 ## v0.1.0
 Making it useful.  Documenting the process.
