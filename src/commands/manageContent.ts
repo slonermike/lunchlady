@@ -22,6 +22,7 @@ const MAX_TAG_LENGTH = 32;
 type MenuValue = string | MenuChoice;
 
 enum MenuChoice {
+    NIL,
     ADD_NEW,
     CANCEL,
     CHANGE_ORDER
@@ -275,6 +276,86 @@ function editArticle(inputSite: Site, articleKey: string): Promise<Site> {
     })
 }
 
+function manuallySortEntries(site: Site, sectionKey: string): Promise<Site> {
+    const choices = site.sections[sectionKey].entries.map((entryKey) => {
+        return {
+            value: entryKey as MenuValue,
+            name: site.entries[entryKey].title
+        };
+    }).concat([
+        {
+            value: MenuChoice.CANCEL,
+            name: '[Done]'
+        }
+    ]);
+
+    const question: Question = {
+        type: 'list',
+        name: 'articleKey',
+        message: 'Choose Article to Move',
+        choices
+    };
+
+    return prompt([question])
+    .then(answers => {
+        const keyToMove: MenuValue = answers['articleKey'];
+        if (keyToMove !== MenuChoice.CANCEL) {
+            const lessChoices = [...choices];
+            const indexToMove = lessChoices.findIndex((choice) => {
+                return choice.value === keyToMove;
+            });
+            assert(indexToMove >= 0);
+            lessChoices.splice(indexToMove, 1);
+            const selectedTitle = site.entries[keyToMove].title;
+
+            const reorderQ: Question = {
+                type: 'list',
+                message: `Place \'${selectedTitle}\' after which article?`,
+                name: 'afterKey',
+                choices: [
+                    {
+                        value: MenuChoice.NIL as MenuValue,
+                        name: '[Make First Article]'
+                    }
+                ].concat(lessChoices)
+            };
+
+            return prompt([reorderQ])
+            .then((answers) => {
+                const afterKey = answers['afterKey'];
+
+                // lessChoices doesn't include the NIL case, so add one to start by accounting for the -1 case
+                // mapping to zero, and so on.
+                const insertAtIndex = lessChoices.findIndex((choice) => {
+                    return choice.value === afterKey;
+                }) + 1;
+
+                // TODO - I hate this.  Simplify the deep copy logic.
+                const newSite: Site = {
+                    ...site
+                };
+                newSite.sections = {
+                    ...site.sections
+                };
+                newSite.sections[sectionKey] = {
+                    ...newSite.sections[sectionKey]
+                };
+                newSite.sections[sectionKey].entries = [
+                    ...site.sections[sectionKey].entries
+                ];
+                newSite.sections[sectionKey].entries.splice(indexToMove, 1);
+                newSite.sections[sectionKey].entries.splice(insertAtIndex, 0, keyToMove as string);
+
+                return newSite;
+            }).then((site) => {
+                return manuallySortEntries(site, sectionKey);
+            });
+        } else {
+            return site;
+        }
+    })
+}
+
 /**
  * If the entries are to be sorted by date, update the order by their dates.
  *
@@ -294,7 +375,6 @@ function autoSortEntries(inputSite: Site, sectionKey: string): Site {
     newEntries.sort((key1, key2) => {
         const entry1 = inputSite.entries[key1];
         const entry2 = inputSite.entries[key2];
-        log(`Type of date1: ${entry1.date.constructor.name}, date2: ${typeof entry2.date.constructor.name}`);
         return entry2.date.getTime() - entry1.date.getTime();
     });
 
@@ -336,7 +416,7 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
         type: 'list',
         name: 'order',
         choices,
-        message: `Sort Method for :${site.sections[sectionKey].name}`
+        message: `Sort Method for: ${site.sections[sectionKey].name}`
     }];
 
     return prompt(questions).then(answers => {
@@ -348,7 +428,12 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
         } as Site;
 
         newSite.sections[sectionKey].entryOrder = answers['order'];
-        return autoSortEntries(site, sectionKey);
+
+        if (answers['order'] === EntryOrder.DATE) {
+            return autoSortEntries(site, sectionKey);
+        } else {
+            return manuallySortEntries(site, sectionKey);
+        }
     });
 }
 
@@ -502,7 +587,7 @@ function manageSiteTop(site: Site): Promise<Site> {
             },
             {
                 value: MenuChoice.CANCEL as MenuValue,
-                name: '[Cancel]'
+                name: '[Done]'
             }
         ])
     };
