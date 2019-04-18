@@ -282,26 +282,31 @@ function manuallySortEntries(site: Site, sectionKey: string): Promise<Site> {
             value: entryKey as MenuValue,
             name: site.entries[entryKey].title
         };
-    });
+    }).concat([
+        {
+            value: MenuChoice.CANCEL,
+            name: '[Done]'
+        }
+    ]);
 
     const question: Question = {
         type: 'list',
         name: 'articleKey',
-        message: 'Choose Article',
+        message: 'Choose Article to Move',
         choices
     };
 
     return prompt([question])
     .then(answers => {
-        const chosenValue: MenuValue = answers['articleKey'];
-        if (chosenValue !== MenuChoice.CANCEL) {
+        const keyToMove: MenuValue = answers['articleKey'];
+        if (keyToMove !== MenuChoice.CANCEL) {
             const lessChoices = [...choices];
-            const foundIndex = lessChoices.findIndex((choice) => {
-                return choice.value === chosenValue;
+            const indexToMove = lessChoices.findIndex((choice) => {
+                return choice.value === keyToMove;
             });
-            assert(foundIndex >= 0);
-            lessChoices.splice(foundIndex, 1);
-            const selectedTitle = site.entries[chosenValue].title;
+            assert(indexToMove >= 0);
+            lessChoices.splice(indexToMove, 1);
+            const selectedTitle = site.entries[keyToMove].title;
 
             const reorderQ: Question = {
                 type: 'list',
@@ -310,15 +315,40 @@ function manuallySortEntries(site: Site, sectionKey: string): Promise<Site> {
                 choices: [
                     {
                         value: MenuChoice.NIL as MenuValue,
-                        name: '[First]'
+                        name: '[Make First Article]'
                     }
                 ].concat(lessChoices)
             };
 
             return prompt([reorderQ])
             .then((answers) => {
-                log(`Answers: ${JSON.stringify(answers)}`);
-                return site;
+                const afterKey = answers['afterKey'];
+
+                // lessChoices doesn't include the NIL case, so add one to start by accounting for the -1 case
+                // mapping to zero, and so on.
+                const insertAtIndex = lessChoices.findIndex((choice) => {
+                    return choice.value === afterKey;
+                }) + 1;
+
+                // TODO - I hate this.  Simplify the deep copy logic.
+                const newSite: Site = {
+                    ...site
+                };
+                newSite.sections = {
+                    ...site.sections
+                };
+                newSite.sections[sectionKey] = {
+                    ...newSite.sections[sectionKey]
+                };
+                newSite.sections[sectionKey].entries = [
+                    ...site.sections[sectionKey].entries
+                ];
+                newSite.sections[sectionKey].entries.splice(indexToMove, 1);
+                newSite.sections[sectionKey].entries.splice(insertAtIndex, 0, keyToMove as string);
+
+                return newSite;
+            }).then((site) => {
+                return manuallySortEntries(site, sectionKey);
             });
         } else {
             return site;
@@ -345,7 +375,6 @@ function autoSortEntries(inputSite: Site, sectionKey: string): Site {
     newEntries.sort((key1, key2) => {
         const entry1 = inputSite.entries[key1];
         const entry2 = inputSite.entries[key2];
-        log(`Type of date1: ${entry1.date.constructor.name}, date2: ${typeof entry2.date.constructor.name}`);
         return entry2.date.getTime() - entry1.date.getTime();
     });
 
@@ -387,7 +416,7 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
         type: 'list',
         name: 'order',
         choices,
-        message: `Sort Method for :${site.sections[sectionKey].name}`
+        message: `Sort Method for: ${site.sections[sectionKey].name}`
     }];
 
     return prompt(questions).then(answers => {
@@ -558,7 +587,7 @@ function manageSiteTop(site: Site): Promise<Site> {
             },
             {
                 value: MenuChoice.CANCEL as MenuValue,
-                name: '[Cancel]'
+                name: '[Done]'
             }
         ])
     };
