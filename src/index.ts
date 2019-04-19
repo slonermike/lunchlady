@@ -28,7 +28,7 @@ commands = {
         description: 'Interactive menu for managing your site.'
     },
     'get-sloppy': {
-        cmd: () => getsloppy(getValue('sloppyJoeFolder'), getValue('sloppyJoeOrigin'), getValue('sloppyJoeBranch')),
+        cmd: () => getsloppy(getValue<string>('sloppyJoeFolder'), getValue<string>('sloppyJoeOrigin'), getValue<string>('sloppyJoeBranch')),
         description: 'Initialize or update the Sloppy Joe code.'
     },
     'setup': {

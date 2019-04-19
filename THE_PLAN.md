@@ -50,6 +50,7 @@ Multi-page sites.
 - Ability to edit blog entries on a specific page.
 - Move content.json into HTML for more centralized content management.
 - Ability to manually reorder sections.
+- Ability to add blog entries from a subdirectory.
 
 ## v0.1.0
 Making it useful.  Documenting the process.

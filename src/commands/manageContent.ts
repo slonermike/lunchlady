@@ -1,5 +1,5 @@
 import { getValue } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType, getDirectories } from "../utils/File";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType, getDirectoriesRecursive, getFilesOfTypeRecursive } from "../utils/File";
 import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
@@ -443,11 +443,15 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
  * @param site Site to which the article will be added.
  */
 function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
-    const htmlFolder = getValue('htmlFolder');
+    const htmlFolder = getValue<string>('htmlFolder');
     let newEntryKey;
-    return getDirectories(htmlFolder).then((dirs) => {
-        console.log(`Directories: ${JSON.stringify(dirs)}`);
-    }).then(() => getFilesOfType(htmlFolder, supportedFileTypes))
+    return getFilesOfTypeRecursive(htmlFolder, supportedFileTypes)
+    .then(rawFiles => {
+        // Remove the html folder and leading slash from it.
+        return rawFiles.map((rawFile) => {
+            return rawFile.replace(htmlFolder, '').replace(/^\//, "");
+        });
+    })
     .then((allFiles) => {
         const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {
@@ -616,7 +620,7 @@ function manageSiteTop(site: Site): Promise<Site> {
  * Manage the content of the website via CLI.
  */
 export function manageContent(): Promise<Site> {
-    const contentFile = getValue('contentFolder') + getValue('contentFile');
+    const contentFile = getValue<string>('contentFolder') + getValue<string>('contentFile');
 
     return getSiteData(contentFile)
     .catch((err: FileError) => {
