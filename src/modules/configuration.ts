@@ -21,8 +21,8 @@ const noWriteValues: Record<string, boolean> = {
 /**
  * Retrieve a specific value from configuration.
  */
-export function getValue(key: string) {
-    return values[key];
+export function getValue<ValType>(key: string) {
+    return values[key] as ValType;
 }
 
 /**

@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { resolve } from 'path';
 
 export class FileError {
     public type: FileErrorType;
@@ -75,6 +76,69 @@ export function promiseFileExistence(filename): Promise<string> {
     });
 }
 
+function isDirectory(file: string): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+        fs.stat(file, (err, stats) => {
+            if (err) {
+                reject(err);
+            } else if (stats.isDirectory()) {
+                resolve(file);
+            } else {
+                resolve(null);
+            }
+        })
+    })
+}
+
+/**
+ * Get all subdirectories of a directory.
+ *
+ * @param directory Directory in which to find subdirectories.
+ */
+export function getSubdirectories(directory: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+        fs.readdir(directory, (err, files) => {
+            if (err) {
+                reject(new FileError(
+                    FileErrorType.READ_ERROR,
+                    `Read Error: ${err}`
+                ));
+            } else {
+                const dirPromises: Promise<string | null>[] = [];
+                files.forEach((file) => {
+                    const fullFile = `${directory}/${file}`;
+                    dirPromises.push(isDirectory(fullFile));
+                });
+                Promise.all(dirPromises).then(dirs => {
+                    const validDirs = [];
+                    dirs.forEach((dir) => dir ? validDirs.push(dir) : null);
+                    resolve(validDirs);
+                });
+            }
+        })
+    });
+}
+
+/**
+ * Get all the directories in and below the specified directory, including
+ * the specified directory.
+ *
+ * @param directory Directory at which to start collecting directories.
+ * @param foundDirs Accumulated mapping of found directories.
+ */
+export function getDirectoriesRecursive(directory: string, foundDirs: Record<string, boolean> = {}): Promise<string[]> {
+    return new Promise<string[]>((resolve, _reject) => {
+        foundDirs[directory] = true;
+        getSubdirectories(directory)
+        .then(subdirs => {
+            Promise.all(subdirs.map(subdir => getDirectoriesRecursive(subdir, foundDirs)))
+                .then(() => {
+                    resolve(Object.keys(foundDirs));
+                });
+        });
+    });
+}
+
 /**
  * Retrieve files from a directory for which the filename matches the provided
  * regular expression.
@@ -96,10 +160,28 @@ export function getFilesOfType(directory: string, fileTypeRegex: RegExp): Promis
                     const matches = filename.match(fileTypeRegex);
                     return matches && matches.length > 0;
                 });
-                resolve(finalList);
+                resolve(finalList.map(file => `${directory}/${file}`));
             }
         })
     });
+}
+
+/**
+ * Get all files in the directory and below it which satisfy the regex
+ * with their filename.
+ *
+ * @param directory Directory at which to start the search.
+ * @param fileTypeRegex Regex by which to identify desired filenames.
+ */
+export function getFilesOfTypeRecursive(directory: string, fileTypeRegex: RegExp): Promise<string[]> {
+    return getDirectoriesRecursive(directory)
+        .then((directories) => {
+            const promises = directories.map((dir) => getFilesOfType(dir, fileTypeRegex));
+            return Promise.all(promises)
+                .then(fileSets => {
+                    return [].concat.apply([], fileSets);
+                });
+        });
 }
 
 /**

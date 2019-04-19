@@ -56,7 +56,7 @@ function unlinkIfSymlink(dir: string): Promise<string> {
  * content folder in Sloppy Joe.
  */
 function linkHtmlDirectory(): Promise<void> {
-    const configFolder = getValue('configFolder');
+    const configFolder = getValue<string>('configFolder');
 
     return FileUtils.promiseDirectoryExistence(configFolder).then(() => {
         var configQuestions = [
@@ -64,7 +64,7 @@ function linkHtmlDirectory(): Promise<void> {
                 message: 'Where is the HTML for your blog entries?',
                 name: 'htmlFolder',
                 type: 'path',
-                default: getValue('htmlFolder') || '~/',
+                default: getValue<string>('htmlFolder') || '~/',
                 cwd: process.cwd(),
                 directoryOnly: true
             }
@@ -74,11 +74,11 @@ function linkHtmlDirectory(): Promise<void> {
             .then(fixValues)
             .then(writeValues)
             .then(() => {
-                const newHtmlFolder = getValue('htmlFolder');
+                const newHtmlFolder = getValue<string>('htmlFolder');
                 return FileUtils.promiseDirectoryExistence(newHtmlFolder, false)
                     .then(() => unlinkIfSymlink(getValue('contentFolder')))
-                    .then(() => FileUtils.symlink(newHtmlFolder, getValue('contentFolder')))
-                    .then(() => log(`Content directory LINKED -- ${getValue('contentFolder')} => ${getValue('htmlFolder')}`));
+                    .then(() => FileUtils.symlink(newHtmlFolder, getValue<string>('contentFolder')))
+                    .then(() => log(`Content directory LINKED -- ${getValue<string>('contentFolder')} => ${getValue<string>('htmlFolder')}`));
             })
             .catch(err => log(err));
     }).catch((err) => {
@@ -91,12 +91,12 @@ function linkHtmlDirectory(): Promise<void> {
  * into it.
  */
 export function setup(): Promise<void> {
-    const remoteUrl = getValue('sloppyJoeOrigin');
-    const branch = getValue('sloppyJoeBranch');
+    const remoteUrl = getValue<string>('sloppyJoeOrigin');
+    const branch = getValue<string>('sloppyJoeBranch');
 
     // TODO: let the user specify where to create the sloppy-joe repository.
     // Default to current folder w/ confirmation yes/no?
-    const repoFolder = getValue('sloppyJoeFolder')
+    const repoFolder = getValue<string>('sloppyJoeFolder')
 
     // Link the directory if it doesn't exist.
     return getsloppy(repoFolder, remoteUrl, branch)
