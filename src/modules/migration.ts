@@ -11,6 +11,7 @@ function migrateSite_noneTo0(site: Site): Site {
             const section = site.sections[key];
             section.entryOrder = EntryOrder.DATE;
         });
+        if (!site.css) site.css = [];
         site.siteVersion = 0;
     }
 

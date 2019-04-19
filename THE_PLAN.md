@@ -26,7 +26,6 @@
 
 # Challenges Ahead
 - How do we handle images?
-- How do we handle CSS?
 
 # Known Issues
 - If you try to re-run `lunchlady setup` it will not allow you to change your source content folder.
@@ -51,6 +50,7 @@ Multi-page sites.
 - Move content.json into HTML for more centralized content management.
 - Ability to manually reorder sections.
 - Ability to add blog entries from a subdirectory.
+- Allow specification of CSS files to use from content directory.
 
 ## v0.1.0
 Making it useful.  Documenting the process.
