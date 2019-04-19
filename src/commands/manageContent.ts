@@ -1,6 +1,6 @@
 import { getValue } from "../modules/configuration";
 import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType, getDirectoriesRecursive, getFilesOfTypeRecursive } from "../utils/File";
-import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
+import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite, SITE_DATA_VERSION } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
 import * as assert from 'assert';
@@ -14,7 +14,8 @@ const titleCase = require('title-case');
 registerPrompt('datepicker', require('inquirer-datepicker'));
 
 /** Files that can be used as source for a blog entry. */
-const supportedFileTypes = (/\.(htm|html)$/i);
+const SUPPORTED_CONTENT_FILES = (/\.(htm|html)$/i);
+const SUPPORTED_CSS_FILES = (/\.(css)$/i);
 
 /** Maximum length for a tag. */
 const MAX_TAG_LENGTH = 32;
@@ -25,7 +26,8 @@ enum MenuChoice {
     NIL,
     ADD_NEW,
     CANCEL,
-    CHANGE_ORDER
+    CHANGE_ORDER,
+    CHANGE_CSS
 };
 
 /**
@@ -438,6 +440,16 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
 }
 
 /**
+ * Remove from the filename all the leading characters pointing to the root folder.
+ *
+ * @param filename Filename to sanitize.
+ */
+function sanitizeContentFilename(filename: string): string {
+    const htmlFolder = getValue<string>('htmlFolder');
+    return filename.replace(htmlFolder, '').replace(/^\//, "");
+}
+
+/**
  * Add an article to a section in the site.
  *
  * @param site Site to which the article will be added.
@@ -445,13 +457,8 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
 function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
     const htmlFolder = getValue<string>('htmlFolder');
     let newEntryKey;
-    return getFilesOfTypeRecursive(htmlFolder, supportedFileTypes)
-    .then(rawFiles => {
-        // Remove the html folder and leading slash from it.
-        return rawFiles.map((rawFile) => {
-            return rawFile.replace(htmlFolder, '').replace(/^\//, "");
-        });
-    })
+    return getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
+    .then(rawFiles => rawFiles.map(sanitizeContentFilename))
     .then((allFiles) => {
         const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {
@@ -573,6 +580,45 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
 }
 
 /**
+ * Change which CSS files are applied to every page of the site.
+ *
+ * @param ogSite Input site.
+ */
+function applyPrimaryCSS(ogSite: Site): Promise<Site> {
+    return new Promise<Site>((resolve, reject) => {
+        const htmlFolder = getValue<string>('htmlFolder');
+        getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CSS_FILES)
+            .then(rawFiles => rawFiles.map(sanitizeContentFilename))
+            .then(cssFiles => {
+                if (cssFiles.length === 0) {
+                    log(`No CSS files found in structure at: ${htmlFolder}`);
+                    resolve(ogSite);
+                }
+
+                const questions: Question[] = [
+                    {
+                        type: 'checkbox',
+                        name: 'cssFiles',
+                        choices: cssFiles,
+                        message: "Choose the CSS files to apply to all pages.",
+                        default: ogSite.css
+                    }
+                ];
+                prompt(questions)
+                    .then(answers => {
+                        resolve({
+                            ...ogSite,
+                            css: answers['cssFiles']
+                        });
+                    });
+            }).catch(err => {
+                log(`Error applying new CSS: ${err}`);
+                resolve(ogSite);
+            });
+    });
+}
+
+/**
  * Manage the site from the top level.
  * @param site Site to work with.
  */
@@ -592,8 +638,12 @@ function manageSiteTop(site: Site): Promise<Site> {
                 name: '[New Section]'
             },
             {
+                value: MenuChoice.CHANGE_CSS as MenuValue,
+                name: '[Change Site CSS]'
+            },
+            {
                 value: MenuChoice.CANCEL as MenuValue,
-                name: '[Done]'
+                name: '[Save & Quit]'
             }
         ])
     };
@@ -602,12 +652,15 @@ function manageSiteTop(site: Site): Promise<Site> {
         const chosenSection = answers['section'];
         if (chosenSection === MenuChoice.ADD_NEW) {
             return addSection(site)
-            .then((site) => manageSiteTop(site));
+                .then(manageSiteTop);
+        } else if (chosenSection === MenuChoice.CHANGE_CSS) {
+            return applyPrimaryCSS(site)
+                .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
         } else if (site.sections[chosenSection]) {
             return manageSection(site, chosenSection)
-            .then((site) => manageSiteTop(site));
+                .then(manageSiteTop);
         } else {
             log(`Unknown section: ${chosenSection}`);
         }

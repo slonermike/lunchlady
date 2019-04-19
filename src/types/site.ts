@@ -30,6 +30,7 @@ export interface Site {
     siteVersion: number;
     sections: Record<string, Blog>;
     entries: Record<string, BlogEntry>;
+    css: string[];
 }
 
 export interface SiteSection {
@@ -55,7 +56,8 @@ export interface BlogEntry {
 export const emptySite: Site = {
     siteVersion: SITE_DATA_VERSION,
     sections: {},
-    entries: {}
+    entries: {},
+    css: []
 };
 
 export const emptyBlog: Blog = {
