@@ -27,7 +27,7 @@ enum MenuChoice {
     ADD_NEW,
     CANCEL,
     CHANGE_ORDER,
-    CHANGE_CSS
+    CHANGE_DIVS
 };
 
 /**
@@ -450,6 +450,16 @@ function sanitizeContentFilename(filename: string): string {
 }
 
 /**
+ * Make a key from a filename.
+ *
+ * @param filename Filename to make a key from.
+ */
+function makeFileKey(filename: string): string {
+    const noExtension = filename.replace(/\.[^/.]+$/, "");
+    return paramCase(noExtension);
+}
+
+/**
  * Add an article to a section in the site.
  *
  * @param site Site to which the article will be added.
@@ -462,7 +472,13 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
     .then((allFiles) => {
         const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {
-            return existingEntries.findIndex((kvp) => kvp.value.file === file) < 0;
+            if (existingEntries.findIndex((kvp) => kvp.value.file === file) >= 0) {
+                return false;
+            }
+
+            if (ogSite.divs.indexOf(file) >= 0) return false;
+
+            return true;
         });
 
         if (unusedFiles.length === 0) {
@@ -481,8 +497,7 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
         return prompt([addEntryQ])
         .then((answers) => {
             const { filename } = answers;
-            const noExtension = filename.replace(/\.[^/.]+$/, "");
-            const keyName = paramCase(noExtension);
+            const keyName = makeFileKey(filename);
 
             const alreadyExists = !!ogSite.entries[keyName];
             assert(!alreadyExists, `Key (${keyName}) collision on file ${filename} and ${ogSite.entries[keyName] && ogSite.entries[keyName].file}`);
@@ -580,35 +595,40 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
 }
 
 /**
- * Change which CSS files are applied to every page of the site.
+ * Change which HTML files are applied to every page of the site.
  *
  * @param ogSite Input site.
  */
-function applyPrimaryCSS(ogSite: Site): Promise<Site> {
-    return new Promise<Site>((resolve, reject) => {
+function applySiteDivs(ogSite: Site): Promise<Site> {
+    return new Promise<Site>((resolve, _reject) => {
         const htmlFolder = getValue<string>('htmlFolder');
-        getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CSS_FILES)
+        getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
             .then(rawFiles => rawFiles.map(sanitizeContentFilename))
-            .then(cssFiles => {
-                if (cssFiles.length === 0) {
-                    log(`No CSS files found in structure at: ${htmlFolder}`);
+            .then(divFiles => {
+                // Filter out HTML used for articles.
+                divFiles = divFiles.filter(divFile => {
+                    return !ogSite.entries[makeFileKey(divFile)];
+                });
+
+                if (divFiles.length === 0) {
+                    log(`No HTML files found in structure at: ${htmlFolder}`);
                     resolve(ogSite);
                 }
 
                 const questions: Question[] = [
                     {
                         type: 'checkbox',
-                        name: 'cssFiles',
-                        choices: cssFiles,
-                        message: "Choose the CSS files to apply to all pages.",
-                        default: ogSite.css
+                        name: 'divFiles',
+                        choices: divFiles,
+                        message: "Choose the HTML files to apply to entire site.",
+                        default: ogSite.divs
                     }
                 ];
                 prompt(questions)
                     .then(answers => {
                         resolve({
                             ...ogSite,
-                            css: answers['cssFiles']
+                            divs: answers['divFiles']
                         });
                     });
             }).catch(err => {
@@ -638,8 +658,8 @@ function manageSiteTop(site: Site): Promise<Site> {
                 name: '[New Section]'
             },
             {
-                value: MenuChoice.CHANGE_CSS as MenuValue,
-                name: '[Change Site CSS]'
+                value: MenuChoice.CHANGE_DIVS as MenuValue,
+                name: '[Change Site-Level HTML]'
             },
             {
                 value: MenuChoice.CANCEL as MenuValue,
@@ -653,8 +673,8 @@ function manageSiteTop(site: Site): Promise<Site> {
         if (chosenSection === MenuChoice.ADD_NEW) {
             return addSection(site)
                 .then(manageSiteTop);
-        } else if (chosenSection === MenuChoice.CHANGE_CSS) {
-            return applyPrimaryCSS(site)
+        } else if (chosenSection === MenuChoice.CHANGE_DIVS) {
+            return applySiteDivs(site)
                 .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
