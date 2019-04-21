@@ -12,6 +12,7 @@ function migrateSite_noneTo0(site: Site): Site {
             section.entryOrder = EntryOrder.DATE;
         });
         if (!site.divs) site.divs = [];
+        if (!site.css) site.css = [];
         site.siteVersion = 0;
     }
 

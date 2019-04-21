@@ -27,7 +27,8 @@ enum MenuChoice {
     ADD_NEW,
     CANCEL,
     CHANGE_ORDER,
-    CHANGE_DIVS
+    CHANGE_DIVS,
+    CHANGE_CSS
 };
 
 /**
@@ -599,6 +600,45 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
  *
  * @param ogSite Input site.
  */
+function applySiteCSS(ogSite: Site): Promise<Site> {
+        return new Promise<Site>((resolve, _reject) => {
+            const htmlFolder = getValue<string>('htmlFolder');
+            getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CSS_FILES)
+                .then(rawFiles => rawFiles.map(sanitizeContentFilename))
+                .then(cssFiles => {
+                    if (cssFiles.length === 0) {
+                        log(`No CSS files found in structure at: ${htmlFolder}`);
+                        resolve(ogSite);
+                    }
+
+                    const questions: Question[] = [
+                        {
+                            type: 'checkbox',
+                            name: 'cssFiles',
+                            choices: cssFiles,
+                            message: "Choose the CSS files to apply to all pages.",
+                            default: ogSite.css
+                        }
+                    ];
+                    prompt(questions)
+                        .then(answers => {
+                            resolve({
+                                ...ogSite,
+                                css: answers['cssFiles']
+                            });
+                        });
+                }).catch(err => {
+                    log(`Error applying new CSS: ${err}`);
+                    resolve(ogSite);
+                });
+        });
+    }
+
+/**
+ * Change which HTML files are applied to every page of the site.
+ *
+ * @param ogSite Input site.
+ */
 function applySiteDivs(ogSite: Site): Promise<Site> {
     return new Promise<Site>((resolve, _reject) => {
         const htmlFolder = getValue<string>('htmlFolder');
@@ -662,6 +702,10 @@ function manageSiteTop(site: Site): Promise<Site> {
                 name: '[Change Site-Level HTML]'
             },
             {
+                value: MenuChoice.CHANGE_CSS as MenuValue,
+                name: '[Change Site-Level CSS]'
+            },
+            {
                 value: MenuChoice.CANCEL as MenuValue,
                 name: '[Save & Quit]'
             }
@@ -675,6 +719,9 @@ function manageSiteTop(site: Site): Promise<Site> {
                 .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CHANGE_DIVS) {
             return applySiteDivs(site)
+                .then(manageSiteTop);
+        } else if (chosenSection === MenuChoice.CHANGE_CSS) {
+            return applySiteCSS(site)
                 .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
