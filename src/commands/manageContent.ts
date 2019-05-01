@@ -1,5 +1,5 @@
-import { getValue } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSON, getFilesOfType, getDirectoriesRecursive, getFilesOfTypeRecursive } from "../utils/File";
+import { Configuration } from "../modules/configuration";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfType, getDirectoriesRecursive, getFilesOfTypeRecursive, writeTextToFile } from "../utils/File";
 import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite, SITE_DATA_VERSION } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
@@ -25,6 +25,7 @@ type MenuValue = string | MenuChoice;
 enum MenuChoice {
     NIL,
     ADD_NEW,
+    RENAME,
     CANCEL,
     CHANGE_ORDER,
     CHANGE_DIVS,
@@ -50,7 +51,7 @@ function getSiteData(contentFile: string): Promise<Site> {
  * @param filename Where to save it.
  */
 function saveSite(site: Site, filename: string) {
-    return writeJSON(filename, site);
+    return writeJSONToFile(filename, site);
 }
 
 /**
@@ -446,7 +447,7 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
  * @param filename Filename to sanitize.
  */
 function sanitizeContentFilename(filename: string): string {
-    const htmlFolder = getValue<string>('htmlFolder');
+    const htmlFolder = Configuration.contentFolder;
     return filename.replace(htmlFolder, '').replace(/^\//, "");
 }
 
@@ -460,13 +461,92 @@ function makeFileKey(filename: string): string {
     return paramCase(noExtension);
 }
 
+function renameSection(ogSite: Site, ogKey: string): Promise<Site> {
+    const renameQ: Question = {
+        type: 'input',
+        name: 'title',
+        message: "Section Title",
+        default: ogSite.sections[ogKey].name
+    };
+
+    return prompt([renameQ]).then((answers) => {
+        const newName = answers['title'];
+        const newKey = paramCase(newName);
+        if (!newKey) {
+            log(`Invalid section name: ${newName}`);
+            return renameSection(ogSite, ogKey);
+        }
+
+        const newSection = {
+            ...ogSite.sections[ogKey],
+            name: newName
+        };
+
+        // TODO: Do we reference the section keys anywhere else?
+
+        const newSite = {...ogSite};
+        delete newSite.sections[ogKey];
+        newSite.sections[newKey] = newSection;
+        return newSite;
+    });
+}
+
+/**
+ * Create an article object from a filename.
+ *
+ * @param filename Filename where the content exists.
+ */
+function createArticle(filename: string): BlogEntry {
+    filename = sanitizeContentFilename(filename);
+
+    const keyName = makeFileKey(filename);
+
+    const newEntry = {
+        ...emptyEntry
+    };
+
+    newEntry.file = filename;
+    newEntry.keyName = keyName;
+    newEntry.title = titleCase(keyName);
+
+    return newEntry;
+}
+
+/**
+ * Add an article object to the blog in a specified section.
+ *
+ * @param ogSite Site to which you'll add it.
+ * @param sectionKey Section into which to add it.
+ * @param entry Entry object to add.
+ */
+function addArticleToSection(ogSite: Site, sectionKey: string, entry: BlogEntry): Site {
+    // TODO: this seems really messy.  Is there a better way to prevent overwrite of the existing site object?
+    const newSite: Site = {
+        ...ogSite,
+        entries: {
+            ...ogSite.entries
+        },
+        sections: {
+            ...ogSite.sections
+        }
+    };
+    newSite.sections[sectionKey] = {
+        ...newSite.sections[sectionKey]
+    };
+
+    newSite.entries[entry.keyName] = entry;
+    newSite.sections[sectionKey].entries.unshift(entry.keyName);
+
+    return newSite;
+}
+
 /**
  * Add an article to a section in the site.
  *
  * @param site Site to which the article will be added.
  */
 function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
-    const htmlFolder = getValue<string>('htmlFolder');
+    const htmlFolder = Configuration.contentFolder;
     let newEntryKey;
     return getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
     .then(rawFiles => rawFiles.map(sanitizeContentFilename))
@@ -498,37 +578,13 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
         return prompt([addEntryQ])
         .then((answers) => {
             const { filename } = answers;
-            const keyName = makeFileKey(filename);
+            const newEntry = createArticle(filename);
+            const keyName = newEntry.keyName;
 
             const alreadyExists = !!ogSite.entries[keyName];
             assert(!alreadyExists, `Key (${keyName}) collision on file ${filename} and ${ogSite.entries[keyName] && ogSite.entries[keyName].file}`);
-            const newEntry = {
-                ...emptyEntry
-            };
 
-            newEntry.file = filename;
-            newEntry.keyName = keyName;
-            newEntry.title = titleCase(keyName);
-
-            // TODO: this seems really messy.  Is there a better way to prevent overwrite of the existing site object?
-            const newSite: Site = {
-                ...ogSite,
-                entries: {
-                    ...ogSite.entries
-                },
-                sections: {
-                    ...ogSite.sections
-                }
-            };
-            newSite.sections[sectionKey] = {
-                ...newSite.sections[sectionKey]
-            };
-
-            newEntryKey = keyName;
-            newSite.entries[keyName] = newEntry;
-            newSite.sections[sectionKey].entries.unshift(keyName);
-
-            return newSite;
+            return addArticleToSection(ogSite, sectionKey, newEntry);
         }).then((site) => {
             if (newEntryKey) {
                 return editArticle(site, newEntryKey).then((site) => autoSortEntries(site, sectionKey));
@@ -553,6 +609,10 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
         name: 'userInput',
         message: 'Choose Article',
         choices: ([
+            {
+                value: MenuChoice.RENAME as MenuValue,
+                name: '[Rename Section]'
+            },
             {
                 value: MenuChoice.ADD_NEW as MenuValue,
                 name: '[New Article]'
@@ -581,6 +641,8 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
         if (userInput === MenuChoice.ADD_NEW) {
             return addArticle(site, sectionKey)
             .then((site) => manageSection(site, sectionKey));
+        } else if (userInput === MenuChoice.RENAME) {
+            return renameSection(site, sectionKey);
         } else if (userInput === MenuChoice.CHANGE_ORDER) {
             return changeSectionSort(site, sectionKey)
             .then((site) => manageSection(site, sectionKey));
@@ -602,7 +664,7 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
  */
 function applySiteCSS(ogSite: Site): Promise<Site> {
         return new Promise<Site>((resolve, _reject) => {
-            const htmlFolder = getValue<string>('htmlFolder');
+            const htmlFolder = Configuration.contentFolder;
             getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CSS_FILES)
                 .then(rawFiles => rawFiles.map(sanitizeContentFilename))
                 .then(cssFiles => {
@@ -641,7 +703,7 @@ function applySiteCSS(ogSite: Site): Promise<Site> {
  */
 function applySiteDivs(ogSite: Site): Promise<Site> {
     return new Promise<Site>((resolve, _reject) => {
-        const htmlFolder = getValue<string>('htmlFolder');
+        const htmlFolder = Configuration.contentFolder;
         getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
             .then(rawFiles => rawFiles.map(sanitizeContentFilename))
             .then(divFiles => {
@@ -737,26 +799,84 @@ function manageSiteTop(site: Site): Promise<Site> {
 }
 
 /**
+ * Create an empty site and save it to the specified location
+ *
+ * @param contentFile Where to save the site data.
+ */
+export function createSite(contentFile: string): Promise<Site> {
+
+    // Create a site with a 'Home' section.
+    const defaultSectionKey = 'home';
+    const newSite: Site = {
+        ...emptySite
+    };
+    newSite.sections[defaultSectionKey] = {
+        ...emptyBlog,
+        name: 'Home',
+        keyName: defaultSectionKey,
+    };
+
+    const titleQuestion: Question = {
+        type: 'input',
+        name: 'title',
+        message: "Site Title"
+    }
+
+    const articlePath = `${Configuration.contentFolder}dummy-entry.html`;
+    const testEntryTitle = 'Site Created'
+    const testEntryText = `
+    <p>
+        Congrats! You have successfully created your own Sloppy Joe
+        site using Lunchlady.  Run \`lunchlady\` again to access
+        Lunchlady's content management capabilities.
+    </p>
+    <p>
+        This entry is found in your content folder at ${Configuration.contentFolder}.
+        To create more entries, add them as HTML files in your content folder, then
+        run \`lunchlady\` again, select \'[Manage Site]\', choose a section and select
+        \`[New Article]\`.
+    </p>
+    <p>
+        For more information about Lunchlady and Sloppy Joe, visit their GitHub Repositories.
+        <ul>
+            <li><a href="https://github.com/slonermike/lunchlady">Lunchlady on GitHub</a></li>
+            <li><a href="https://github.com/slonermike/sloppy-joe">Sloppy Joe on GitHub</a></li>
+        </ul>
+    </p>
+    `;
+
+    return prompt([titleQuestion])
+        .then(answers => {
+            newSite.siteTitle = answers['title'];
+            return newSite;
+        })
+        .then((site) => {
+            return writeTextToFile(articlePath, testEntryText)
+            .then(() => {
+                const newArticle = createArticle(articlePath);
+                newArticle.title = testEntryTitle;
+                return addArticleToSection(site, defaultSectionKey, newArticle);
+            });
+        })
+        .then((site) => {
+            saveSite(site, contentFile);
+            return site;
+        });
+}
+
+/**
  * Manage the content of the website via CLI.
  */
 export function manageContent(): Promise<Site> {
-    const contentFile = getValue<string>('contentFolder') + getValue<string>('contentFile');
+    const contentFile = `${Configuration.contentFolder}${Configuration.contentFile}`;
 
     return getSiteData(contentFile)
     .catch((err: FileError) => {
         if (err.type === FileErrorType.DOES_NOT_EXIST) {
-            log(`Content file does not exist.  Creating.`);
+            log(`Content file does not exist at ${contentFile}.  Run initialization first.`);
         } else {
             log(`Unknown error: ${err}`);
         }
-
-        // Return an empty site.
-        const newSite: Site = {
-            ...emptySite
-        };
-
-        return saveSite(newSite, contentFile)
-        .then(() => newSite);
     })
     .then(manageSiteTop)
     .then((site) => {

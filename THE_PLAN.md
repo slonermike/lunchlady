@@ -6,10 +6,10 @@
 - Set up `scripts` in `package.json` to automatically build and spin up an instance of `sloppy-joe`
 - Command: Delete entry
 - Command: Delete page
-- Command: `lunchlady nuke` which resets the content json file to an empty site.
 - Rename everything 'blog' to 'section'
 - Rename everything 'article' to 'entry'
-- Run `lunchlady` from within the blog folder rather than having a separate lunchlady folder for each blog.  This should eliminate the need for a `config.json` and lighten up the client-side file overhead. (where to put `sloppy-joe` code?)
+- Ability to reorder sections at top level.
+- Ability to rename site.
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -18,14 +18,11 @@
 - Automatically go into tag creation if no tags exist yet.
 - Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
 - Make a manual sort inquirer plugin.
+- Hide sections with no content.
 
 # Open Questions
 - Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
-
-# Known Issues
-- If you try to re-run `lunchlady setup` it will not allow you to change your source content folder.
-- If you run `luchlady manage` before `lunchlady add` it gives insufficient rectification instructions.
 
 # Releases
 
@@ -43,9 +40,13 @@ Multi-page sites.
 - Command: Add page
 - Ability to edit blog entries on a specific page.
 - Move content.json into HTML for more centralized content management.
-- Ability to manually reorder sections.
+- Ability to manually reorder articles within sections.
 - Ability to add blog entries from a subdirectory.
 - Allow specification of CSS files to use from content directory.
+- Ability to rename sections.
+- `lunchlady` creates a blog from scratch in the working directory.
+- Running `lunchlady` the first time will pull down sloppy joe and create a content folder with a sample entry.
+- Configuration is now baked into the app and the config.json file has been removed.
 
 ### Bugs Fixed
 - Initial run of `lunchlady setup` fails to sync branches other than `master`
