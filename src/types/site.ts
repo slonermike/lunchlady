@@ -28,6 +28,7 @@ export enum EntryOrder {
 
 export interface Site {
     siteVersion: number;
+    siteTitle: string;
     sections: Record<string, Blog>;
     entries: Record<string, BlogEntry>;
     divs: string[];
@@ -56,6 +57,7 @@ export interface BlogEntry {
 
 export const emptySite: Site = {
     siteVersion: SITE_DATA_VERSION,
+    siteTitle: '',
     sections: {},
     entries: {},
     divs: [],

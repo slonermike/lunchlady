@@ -1,7 +1,6 @@
 import { log } from '../utils/Log';
 import { Repository, Clone, Error as GitError, Branch } from 'nodegit';
-import { getValue } from '../modules/configuration';
-import { promiseDirectoryExistence, exists } from '../utils/File';
+import { promiseDirectoryExistence } from '../utils/File';
 
 /**
  * Look for a local repo, and if it doesn't exist, create it.
@@ -52,29 +51,21 @@ function getLatest(repo: Repository, branch: string) {
                     });
             })
             .then(() => {
-                log("Complete");
+                log(`sloppy-joe retrieved from branch ${branch}`);
                 resolve();
             }, reject);
     });
 }
 
 /**
- * Determine whether the sloppy joe folder exists, or needs to be created.
- */
-export function sloppyFolderExists(): Promise<boolean> {
-    return exists(getValue('sloppyJoeFolder'));
-}
-
-/**
  * Command to retrieve the latest source from sloppy joe.
  */
-export function getsloppy(repoFolder: string, remoteUrl: string, branch: string): Promise<void> {
-    return promiseDirectoryExistence(repoFolder)
-        .then((dir) => createOrRetrieveRepo(dir, remoteUrl))
+export function getsloppy(remoteUrl: string, branch: string): Promise<void> {
+    return createOrRetrieveRepo(process.cwd(), remoteUrl)
         .then((repo) => getLatest(repo, branch))
         .catch(err => {
             // Something other than missing repo happened.  Report it raw.
-            log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto directory: ${repoFolder}`);
+            log(`Error copying repo: ${remoteUrl}\nFrom branch: ${branch}\nInto working directory: ${process.cwd()}`);
             log(err);
         }) as Promise<void>;
 }

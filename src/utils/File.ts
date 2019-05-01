@@ -274,22 +274,32 @@ export function readJSON(filepath: string): Promise<Record<string, any>> {
 }
 
 /**
- * Write an object to a file as JSON.
- * Resolves w/o output.
+ * Write some text to a file (will clobber existing file)
  *
- * @param filepath File to which the JSON will be written.
- * @param data JS object from which the JSON is created.
+ * @param filepath File to which the text will be written.
+ * @param text Text to write to file.
  */
-export function writeJSON(filepath: string, data: object): Promise<void> {
+export function writeTextToFile(filepath: string, text: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        fs.writeFile(filepath, JSON.stringify(data), (err) => {
+        fs.writeFile(filepath, text, (err) => {
             if (err) {
                 reject(err)
             } else {
                 resolve();
             }
         });
-    })
+    });
+}
+
+/**
+ * Write an object to a file as JSON.
+ * Resolves w/o output.
+ *
+ * @param filepath File to which the JSON will be written.
+ * @param data JS object from which the JSON is created.
+ */
+export function writeJSONToFile(filepath: string, data: object): Promise<void> {
+    return writeTextToFile(filepath, JSON.stringify(data));
 }
 
 /**

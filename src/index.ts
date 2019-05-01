@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import { getsloppy } from './commands/getsloppy';
-import { setup } from './commands/setup';
 import { log } from './utils/Log';
-import { loadValues, getValue } from './modules/configuration';
 import { mainMenu } from './commands/mainMenu';
 
 interface AppCommand {
@@ -27,14 +24,6 @@ commands = {
         cmd: mainMenu as () => Promise<never>,
         description: 'Interactive menu for managing your site.'
     },
-    'get-sloppy': {
-        cmd: () => getsloppy(getValue<string>('sloppyJoeFolder'), getValue<string>('sloppyJoeOrigin'), getValue<string>('sloppyJoeBranch')),
-        description: 'Initialize or update the Sloppy Joe code.'
-    },
-    'setup': {
-        cmd: setup,
-        description: 'Set up Sloppy Joe and link it to the local HTML folder for your blog entries.'
-    },
     'help': {
         cmd: printInstructions,
         description: 'Display this help message.'
@@ -46,10 +35,5 @@ if (!command || !commands[command]) {
     command = 'default';
 }
 
-loadValues()
-    .catch((_msg) => {
-        if (command != 'setup')
-            log(`No stored configuration available -- run 'lunchlady setup'`)}
-    )
-    .then(commands[command].cmd)
-    .catch((err) => log(`Error executing \`${command}\` instruction: ${err}`));
+commands[command].cmd().catch((err) => log(`Error executing \`${command}\` instruction: ${err}`));;
+
