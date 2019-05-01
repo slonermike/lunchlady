@@ -1,5 +1,5 @@
 import { log } from '../utils/Log';
-import { Repository, Clone, Error as GitError } from 'nodegit';
+import { Repository, Clone, Error as GitError, Branch } from 'nodegit';
 import { getValue } from '../modules/configuration';
 import { promiseDirectoryExistence, exists } from '../utils/File';
 
@@ -17,7 +17,9 @@ function createOrRetrieveRepo(directory: string, remoteUrl: string): Promise<Rep
         .catch(err => {
             if (err.errno === GitError.CODE.ENOTFOUND) {
                 // Repo doesn't exist.  Need to clone it in.
-                Clone.clone(remoteUrl, directory).then(resolve, reject);
+                Clone.clone(remoteUrl, directory)
+                    .then(repo => resolve(repo))
+                    .catch(reject);
             } else {
                 reject(err);
             }
@@ -34,19 +36,25 @@ function createOrRetrieveRepo(directory: string, remoteUrl: string): Promise<Rep
 function getLatest(repo: Repository, branch: string) {
     const repoName = 'origin';
     return new Promise((resolve, reject) => {
-        repo.checkoutBranch(branch).then(() => {
-            log(`Updating Sloppy Joe from branch: ${branch}`);
-            return repo.fetch(repoName);
-        })
-        .then(() => {
-            const sourceBranch = `${repoName}/${branch}`;
-            log(`Merging with ${sourceBranch}`);
-            return repo.mergeBranches(branch, sourceBranch);
-        })
-        .then(() => {
-            log("Complete");
-            resolve();
-        }, reject);
+        repo.fetch(repoName)
+            .then(() => {
+                // Checkout master so we can recreate the old branch at head.
+                return repo.checkoutBranch('master')
+                    .then(() => {
+                        return repo.getBranchCommit(`refs/remotes/origin/${branch}`)
+                            .then(headCommit => repo.createBranch(branch, headCommit, true))
+                            .then(branchRef => {
+                                repo.checkoutBranch(branchRef);
+                                return branchRef;
+                            })
+                            .then(branchRef => Branch.setUpstream(branchRef, `${repoName}/${branch}`))
+                            .then(() => resolve(repo));
+                    });
+            })
+            .then(() => {
+                log("Complete");
+                resolve();
+            }, reject);
     });
 }
 

@@ -4,12 +4,12 @@
 - Use inquirer's built in answer validation (`validate`) for directory input.
 - Integrate `log-symbols` with Log utility -- https://github.com/sindresorhus/log-symbols.
 - Set up `scripts` in `package.json` to automatically build and spin up an instance of `sloppy-joe`
-- Add no-sync option to `lunchlady setup`?  Only needs to run once, so might not be necessary.  Useful for offline development.
 - Command: Delete entry
 - Command: Delete page
 - Command: `lunchlady nuke` which resets the content json file to an empty site.
 - Rename everything 'blog' to 'section'
 - Rename everything 'article' to 'entry'
+- Run `lunchlady` from within the blog folder rather than having a separate lunchlady folder for each blog.  This should eliminate the need for a `config.json` and lighten up the client-side file overhead. (where to put `sloppy-joe` code?)
 
 # Possible Improvements
 - Add new entry without existing HTML file.  Create the HTML file.  Auto-open in a specified editor?
@@ -20,17 +20,12 @@
 - Make a manual sort inquirer plugin.
 
 # Open Questions
-- What are 'sections' going to be?  Content chosen via tags?  Chosen via explicit assignment?
-- Does immutability really matter?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
+- Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
-
-# Challenges Ahead
-- How do we handle images?
 
 # Known Issues
 - If you try to re-run `lunchlady setup` it will not allow you to change your source content folder.
 - If you run `luchlady manage` before `lunchlady add` it gives insufficient rectification instructions.
-- Initial run of `lunchlady setup` fails to sync branches other than `master`
 
 # Releases
 
@@ -51,6 +46,9 @@ Multi-page sites.
 - Ability to manually reorder sections.
 - Ability to add blog entries from a subdirectory.
 - Allow specification of CSS files to use from content directory.
+
+### Bugs Fixed
+- Initial run of `lunchlady setup` fails to sync branches other than `master`
 
 ## v0.1.0
 Making it useful.  Documenting the process.
