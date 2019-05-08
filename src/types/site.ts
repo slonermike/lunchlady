@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-export const SITE_DATA_VERSION = 0;
+export const SITE_DATA_VERSION = 1;
 
 /**
  * Convert things that don't directly translate from JSON to
@@ -30,6 +30,7 @@ export interface Site {
     siteVersion: number;
     siteTitle: string;
     sections: Record<string, Blog>;
+    sectionOrder: string[];
     entries: Record<string, BlogEntry>;
     divs: string[];
     css: string[];
@@ -59,6 +60,7 @@ export const emptySite: Site = {
     siteVersion: SITE_DATA_VERSION,
     siteTitle: '',
     sections: {},
+    sectionOrder: [],
     entries: {},
     divs: [],
     css: []
