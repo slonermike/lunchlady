@@ -24,6 +24,9 @@
 - Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
 
+# Known Issues
+- Adding a new article should go straight into editing it after adding it.  It doesn't.
+
 # Releases
 
 ## v0.2.0
