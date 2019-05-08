@@ -1,6 +1,6 @@
 import { Configuration } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfType, getDirectoriesRecursive, getFilesOfTypeRecursive, writeTextToFile } from "../utils/File";
-import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite, SITE_DATA_VERSION } from "../types/site";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfTypeRecursive, writeTextToFile } from "../utils/File";
+import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
 import { log } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
 import * as assert from 'assert';
@@ -357,7 +357,7 @@ function manuallySortEntries(site: Site, sectionKey: string): Promise<Site> {
         } else {
             return site;
         }
-    })
+    });
 }
 
 /**
@@ -401,7 +401,7 @@ function autoSortEntries(inputSite: Site, sectionKey: string): Site {
 }
 
 /**
- *
+ * Change the way the entries in a section are ordered.
  * @param site Site being updated.
  * @param sectionKey Section which is changing sort method.
  */
@@ -459,6 +459,83 @@ function sanitizeContentFilename(filename: string): string {
 function makeFileKey(filename: string): string {
     const noExtension = filename.replace(/\.[^/.]+$/, "");
     return paramCase(noExtension);
+}
+
+/**
+ * Select a section to move in order, then select where to
+ * place it in the new order.
+ *
+ * @param site Site in which to reorder the sections.
+ */
+function reorderSections(site: Site): Promise<Site> {
+    const choices = site.sectionOrder.map((sectionKey) => {
+        return {
+            value: sectionKey as MenuValue,
+            name: site.sections[sectionKey].name
+        };
+    }).concat([
+        {
+            value: MenuChoice.CANCEL,
+            name: '[Done]'
+        }
+    ]);
+
+    const question: Question = {
+        type: 'list',
+        name: 'sectionKey',
+        message: 'Choose Section to Move',
+        choices
+    };
+
+    return prompt([question])
+    .then(answers => {
+        const keyToMove: MenuValue = answers['sectionKey'];
+        if (keyToMove !== MenuChoice.CANCEL) {
+            const lessChoices = [...choices];
+            const indexToMove = lessChoices.findIndex((choice) => {
+                return choice.value === keyToMove;
+            });
+            assert(indexToMove >= 0);
+            lessChoices.splice(indexToMove, 1);
+            const selectedTitle = site.sections[keyToMove].name;
+
+            const reorderQ: Question = {
+                type: 'list',
+                message: `Place \'${selectedTitle}\' after which section?`,
+                name: 'afterKey',
+                choices: [
+                    {
+                        value: MenuChoice.NIL as MenuValue,
+                        name: '[Make First Section]'
+                    }
+                ].concat(lessChoices)
+            };
+
+            return prompt([reorderQ])
+            .then((answers) => {
+                const afterKey = answers['afterKey'];
+
+                // lessChoices doesn't include the NIL case, so add one to start by accounting for the -1 case
+                // mapping to zero, and so on.
+                const insertAtIndex = lessChoices.findIndex((choice) => {
+                    return choice.value === afterKey;
+                }) + 1;
+
+                // TODO - I hate this.  Simplify the deep copy logic.
+                const newSite: Site = {
+                    ...site
+                };
+                newSite.sectionOrder.splice(indexToMove, 1);
+                newSite.sectionOrder.splice(insertAtIndex, 0, keyToMove as string);
+
+                return newSite;
+            }).then((site) => {
+                return reorderSections(site);
+            });
+        } else {
+            return site;
+        }
+    });
 }
 
 function renameSection(ogSite: Site, ogKey: string): Promise<Site> {
@@ -761,6 +838,10 @@ function manageSiteTop(site: Site): Promise<Site> {
                 name: '[New Section]'
             },
             {
+                value: MenuChoice.CHANGE_ORDER as MenuValue,
+                name: '[Reorder Sections]'
+            },
+            {
                 value: MenuChoice.CHANGE_DIVS as MenuValue,
                 name: '[Change Site-Level HTML]'
             },
@@ -779,6 +860,9 @@ function manageSiteTop(site: Site): Promise<Site> {
         const chosenSection = answers['section'];
         if (chosenSection === MenuChoice.ADD_NEW) {
             return addSection(site)
+                .then(manageSiteTop);
+        } else if (chosenSection === MenuChoice.CHANGE_ORDER) {
+            return reorderSections(site)
                 .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CHANGE_DIVS) {
             return applySiteDivs(site)

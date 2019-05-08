@@ -8,7 +8,6 @@
 - Command: Delete page
 - Rename everything 'blog' to 'section'
 - Rename everything 'article' to 'entry'
-- Ability to reorder sections at top level.
 - Ability to rename site.
 
 # Possible Improvements
@@ -23,9 +22,6 @@
 # Open Questions
 - Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
-
-# Known Issues
-- Adding a new article should go straight into editing it after adding it.  It doesn't.
 
 # Releases
 
@@ -50,9 +46,11 @@ Multi-page sites.
 - `lunchlady` creates a blog from scratch in the working directory.
 - Running `lunchlady` the first time will pull down sloppy joe and create a content folder with a sample entry.
 - Configuration is now baked into the app and the config.json file has been removed.
+- Ability to reorder sections at top level.
 
 ### Bugs Fixed
 - Initial run of `lunchlady setup` fails to sync branches other than `master`
+- Adding a new article should go straight into editing it after adding it.  It doesn't.
 
 ## v0.1.0
 Making it useful.  Documenting the process.
