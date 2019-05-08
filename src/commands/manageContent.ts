@@ -580,6 +580,7 @@ function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
             const { filename } = answers;
             const newEntry = createArticle(filename);
             const keyName = newEntry.keyName;
+            newEntryKey = keyName;
 
             const alreadyExists = !!ogSite.entries[keyName];
             assert(!alreadyExists, `Key (${keyName}) collision on file ${filename} and ${ogSite.entries[keyName] && ogSite.entries[keyName].file}`);
