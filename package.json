@@ -17,6 +17,7 @@
     "inquirer": "^6.2.0",
     "inquirer-datepicker": "^1.0.0",
     "inquirer-path": "^1.0.0-beta5",
+    "json-beautify": "^1.1.0",
     "nodegit": "^0.24.1",
     "param-case": "^2.1.1",
     "title-case": "^2.1.1"
