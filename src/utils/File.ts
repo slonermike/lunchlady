@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { resolve } from 'path';
+import * as beautify from 'json-beautify';
 
 export class FileError {
     public type: FileErrorType;
@@ -299,7 +299,7 @@ export function writeTextToFile(filepath: string, text: string): Promise<void> {
  * @param data JS object from which the JSON is created.
  */
 export function writeJSONToFile(filepath: string, data: object): Promise<void> {
-    return writeTextToFile(filepath, JSON.stringify(data));
+    return writeTextToFile(filepath, beautify(data, null, 2));
 }
 
 /**
