@@ -1,5 +1,5 @@
 import { Configuration } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfTypeRecursive, writeTextToFile, getSubdirectories } from "../utils/File";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfTypeRecursive, writeTextToFile, getSubdirectories, promiseDirectoryExistence } from "../utils/File";
 import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
 import { log, error } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
@@ -747,13 +747,33 @@ function getThemeFiles(theme: string): Promise<{
     };
 
     const specificThemeFolder = `${Configuration.themeFolder}/${theme}`;
-    const cssPromise = getFilesOfTypeRecursive(`${specificThemeFolder}/css`, SUPPORTED_CSS_FILES)
+    const cssFolder = `${specificThemeFolder}/css`;
+    const cssPromise = promiseDirectoryExistence(cssFolder, false)
+        .then(dirExists => {
+            if (dirExists) {
+                return getFilesOfTypeRecursive(cssFolder, SUPPORTED_CSS_FILES)
+            } else {
+                return [];
+            }
+        })
         .then(cssFiles => {
             files.css = cssFiles.map(cssFile => sanitizeFilename(cssFile, Configuration.themeFolder));
+        }).catch(err => {
+            if (err.type !== FileErrorType.DOES_NOT_EXIST) {
+                error(`Error getting css files for theme: ${theme} -- ${err}`);
+            }
+            return [];
         });
 
     const htmlFolder = `${specificThemeFolder}/html`;
-    const htmlPromise = getFilesOfTypeRecursive(htmlFolder, SUPPORTED_HTML_FILES)
+    const htmlPromise = promiseDirectoryExistence(htmlFolder, false)
+        .then(dirExists => {
+            if (dirExists) {
+                return getFilesOfTypeRecursive(htmlFolder, SUPPORTED_HTML_FILES);
+            } else {
+                return [];
+            }
+        })
         .then(htmlFiles => {
             htmlFiles.forEach(rawFilename => {
                 const nameWithCategory = sanitizeFilename(rawFilename, htmlFolder);
@@ -769,6 +789,11 @@ function getThemeFiles(theme: string): Promise<{
                 files.divs[categoryName] = files.divs[categoryName] || [];
                 files.divs[categoryName].push(sanitizeFilename(rawFilename, Configuration.themeFolder));
             })
+        }).catch(err => {
+            if (err.type !== FileErrorType.DOES_NOT_EXIST) {
+                error(`Error getting html files for theme: ${theme} -- ${err}`);
+            }
+            return [];
         });
 
     return Promise.all([cssPromise, htmlPromise]).then(() => files);
@@ -791,15 +816,20 @@ function applyThemes(site: Site): Promise<Site> {
                 ...newSite.divs,
                 ...files.divs
             };
-            newSite.css = {
+            newSite.css = [
                 ...newSite.css,
                 ...files.css
-            };
+            ];
         });
     });
 
     // After all promises ahve completed, return the new site.
-    return Promise.all(promises).then(() => newSite);
+    return Promise.all(promises).then(() => {
+        return newSite;
+    }).catch(err => {
+        error(`Error applying themes: ${err}`);
+        return newSite;
+    });
 }
 
 /**
@@ -903,13 +933,15 @@ export function createSite(contentFile: string): Promise<Site> {
     // Create a site with a 'Home' section.
     const defaultSectionKey = 'home';
     const newSite: Site = {
-        ...emptySite
+        ...emptySite,
+        themes: ['default']
     };
     newSite.sections[defaultSectionKey] = {
         ...emptyBlog,
         name: 'Home',
         keyName: defaultSectionKey,
     };
+    newSite.sectionOrder = [defaultSectionKey];
 
     const titleQuestion: Question = {
         type: 'input',
@@ -945,6 +977,7 @@ export function createSite(contentFile: string): Promise<Site> {
             newSite.siteTitle = answers['title'];
             return newSite;
         })
+        .then(applyThemes)
         .then((site) => {
             return writeTextToFile(articlePath, testEntryText)
             .then(() => {
