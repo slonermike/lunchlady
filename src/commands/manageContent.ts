@@ -555,7 +555,8 @@ function renameSection(ogSite: Site, ogKey: string): Promise<Site> {
 
         const newSection = {
             ...ogSite.sections[ogKey],
-            name: newName
+            name: newName,
+            keyName: newKey
         };
 
         // TODO: Do we reference the section keys anywhere else?
@@ -563,6 +564,7 @@ function renameSection(ogSite: Site, ogKey: string): Promise<Site> {
         const newSite = {...ogSite};
         delete newSite.sections[ogKey];
         newSite.sections[newKey] = newSection;
+        newSite.sectionOrder = newSite.sectionOrder.map(sectionKey => sectionKey === ogKey ? newKey : sectionKey);
         return newSite;
     });
 }

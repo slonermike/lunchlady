@@ -28,9 +28,6 @@
   - If we do `npm run start` or `npm run build` from lunchlady, maybe we can make it part of compilation.
   - Could create a script called `lunchlady retheme` or something.
 
-# Known Issues
-- Reorder sections is erroring out (find out if this is in the published version/0.2 that's out there).
-
 # Releases
 
 ## v0.3.0
@@ -38,6 +35,9 @@ Themes
 
 ### Features
 - Themes are applied via a folder containing all the relevant CSS and HTML.
+
+### Bugs Fixed
+- Fixed issue where renaming a section would not update the keys everywhere they appeared, causing reorder-sections to error out.
 
 ## v0.2.0
 Multi-page sites.
