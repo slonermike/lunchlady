@@ -1,11 +1,12 @@
 import { Configuration } from "../modules/configuration";
-import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfTypeRecursive, writeTextToFile } from "../utils/File";
+import { promiseFileExistence, readJSON, FileError, FileErrorType, writeJSONToFile, getFilesOfTypeRecursive, writeTextToFile, getSubdirectories } from "../utils/File";
 import { Site, emptySite, SiteSection, BlogEntry, Blog, emptyBlog, emptyEntry, EntryOrder, parseSite } from "../types/site";
-import { log } from "../utils/Log";
+import { log, error } from "../utils/Log";
 import { Question, prompt, registerPrompt } from "inquirer";
 import * as assert from 'assert';
 import { migrateSiteData } from "../modules/migration";
 import { formatDateTime } from "../modules/date";
+import { resolve } from "url";
 
 const paramCase = require('param-case');
 const titleCase = require('title-case');
@@ -14,7 +15,7 @@ const titleCase = require('title-case');
 registerPrompt('datepicker', require('inquirer-datepicker'));
 
 /** Files that can be used as source for a blog entry. */
-const SUPPORTED_CONTENT_FILES = (/\.(htm|html)$/i);
+const SUPPORTED_HTML_FILES = (/\.(htm|html)$/i);
 const SUPPORTED_CSS_FILES = (/\.(css)$/i);
 
 /** Maximum length for a tag. */
@@ -28,8 +29,7 @@ enum MenuChoice {
     RENAME,
     CANCEL,
     CHANGE_ORDER,
-    CHANGE_DIVS,
-    CHANGE_CSS
+    CHANGE_THEME
 };
 
 /**
@@ -446,9 +446,8 @@ export function changeSectionSort(site: Site, sectionKey: string): Promise<Site>
  *
  * @param filename Filename to sanitize.
  */
-function sanitizeContentFilename(filename: string): string {
-    const htmlFolder = Configuration.contentFolder;
-    return filename.replace(htmlFolder, '').replace(/^\//, "");
+function sanitizeFilename(filename: string, rootFolder: string): string {
+    return filename.replace(rootFolder, '').replace(/^\//, "");
 }
 
 /**
@@ -574,7 +573,7 @@ function renameSection(ogSite: Site, ogKey: string): Promise<Site> {
  * @param filename Filename where the content exists.
  */
 function createArticle(filename: string): BlogEntry {
-    filename = sanitizeContentFilename(filename);
+    filename = sanitizeFilename(filename, Configuration.contentFolder);
 
     const keyName = makeFileKey(filename);
 
@@ -625,16 +624,14 @@ function addArticleToSection(ogSite: Site, sectionKey: string, entry: BlogEntry)
 function addArticle(ogSite: Site, sectionKey: string): Promise<Site> {
     const htmlFolder = Configuration.contentFolder;
     let newEntryKey;
-    return getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
-    .then(rawFiles => rawFiles.map(sanitizeContentFilename))
+    return getFilesOfTypeRecursive(htmlFolder, SUPPORTED_HTML_FILES)
+    .then(rawFiles => rawFiles.map(fileName => sanitizeFilename(fileName, Configuration.contentFolder)))
     .then((allFiles) => {
         const existingEntries = entriesAsKvps(ogSite);
         const unusedFiles = allFiles.filter((file) => {
             if (existingEntries.findIndex((kvp) => kvp.value.file === file) >= 0) {
                 return false;
             }
-
-            if (ogSite.divs.indexOf(file) >= 0) return false;
 
             return true;
         });
@@ -736,85 +733,105 @@ function manageSection(site: Site, sectionKey: string): Promise<Site> {
 }
 
 /**
- * Change which HTML files are applied to every page of the site.
+ * Retrieve all the appropriate files associated with a theme.
  *
- * @param ogSite Input site.
+ * @param theme Theme to get the files for.
  */
-function applySiteCSS(ogSite: Site): Promise<Site> {
-        return new Promise<Site>((resolve, _reject) => {
-            const htmlFolder = Configuration.contentFolder;
-            getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CSS_FILES)
-                .then(rawFiles => rawFiles.map(sanitizeContentFilename))
-                .then(cssFiles => {
-                    if (cssFiles.length === 0) {
-                        log(`No CSS files found in structure at: ${htmlFolder}`);
-                        resolve(ogSite);
-                    }
+function getThemeFiles(theme: string): Promise<{
+    css: string[],
+    divs: Record<string, string[]>
+}> {
+    const files = {
+        css: [],
+        divs: {}
+    };
 
-                    const questions: Question[] = [
-                        {
-                            type: 'checkbox',
-                            name: 'cssFiles',
-                            choices: cssFiles,
-                            message: "Choose the CSS files to apply to all pages.",
-                            default: ogSite.css
-                        }
-                    ];
-                    prompt(questions)
-                        .then(answers => {
-                            resolve({
-                                ...ogSite,
-                                css: answers['cssFiles']
-                            });
-                        });
-                }).catch(err => {
-                    log(`Error applying new CSS: ${err}`);
-                    resolve(ogSite);
-                });
+    const specificThemeFolder = `${Configuration.themeFolder}/${theme}`;
+    const cssPromise = getFilesOfTypeRecursive(`${specificThemeFolder}/css`, SUPPORTED_CSS_FILES)
+        .then(cssFiles => {
+            files.css = cssFiles.map(cssFile => sanitizeFilename(cssFile, Configuration.themeFolder));
         });
-    }
 
-/**
- * Change which HTML files are applied to every page of the site.
- *
- * @param ogSite Input site.
- */
-function applySiteDivs(ogSite: Site): Promise<Site> {
-    return new Promise<Site>((resolve, _reject) => {
-        const htmlFolder = Configuration.contentFolder;
-        getFilesOfTypeRecursive(htmlFolder, SUPPORTED_CONTENT_FILES)
-            .then(rawFiles => rawFiles.map(sanitizeContentFilename))
-            .then(divFiles => {
-                // Filter out HTML used for articles.
-                divFiles = divFiles.filter(divFile => {
-                    return !ogSite.entries[makeFileKey(divFile)];
-                });
+    const htmlFolder = `${specificThemeFolder}/html`;
+    const htmlPromise = getFilesOfTypeRecursive(htmlFolder, SUPPORTED_HTML_FILES)
+        .then(htmlFiles => {
+            htmlFiles.forEach(rawFilename => {
+                const nameWithCategory = sanitizeFilename(rawFilename, htmlFolder);
+                const categoryLength = nameWithCategory.indexOf("/");
 
-                if (divFiles.length === 0) {
-                    log(`No HTML files found in structure at: ${htmlFolder}`);
-                    resolve(ogSite);
+                let categoryName = 'headers';
+                if (categoryLength <= 0) {
+                    log(`Error retrieving category name for div html \'${rawFilename}\'.  Putting into \'headers\' category.`)
+                } else {
+                    categoryName = nameWithCategory.slice(0, categoryLength);
                 }
 
-                const questions: Question[] = [
-                    {
-                        type: 'checkbox',
-                        name: 'divFiles',
-                        choices: divFiles,
-                        message: "Choose the HTML files to apply to entire site.",
-                        default: ogSite.divs
-                    }
-                ];
-                prompt(questions)
-                    .then(answers => {
-                        resolve({
-                            ...ogSite,
-                            divs: answers['divFiles']
-                        });
-                    });
-            }).catch(err => {
-                log(`Error applying new CSS: ${err}`);
-                resolve(ogSite);
-            });
+                files.divs[categoryName] = files.divs[categoryName] || [];
+                files.divs[categoryName].push(sanitizeFilename(rawFilename, Configuration.themeFolder));
+            })
+        });
+
+    return Promise.all([cssPromise, htmlPromise]).then(() => files);
+}
+
+/**
+ * Get all HTML & CSS associated with the site's themes and apply them
+ *
+ * @param site Site to apply themes for.
+ */
+function applyThemes(site: Site): Promise<Site> {
+    const newSite: Site = {
+        ...site,
+        divs: {},
+        css: []
+    };
+    const promises = site.themes.map(theme => {
+        return getThemeFiles(theme).then(files => {
+            newSite.divs = {
+                ...newSite.divs,
+                ...files.divs
+            };
+            newSite.css = {
+                ...newSite.css,
+                ...files.css
+            };
+        });
+    });
+
+    // After all promises ahve completed, return the new site.
+    return Promise.all(promises).then(() => newSite);
+}
+
+/**
+ * Select the themes to be applied to the site.
+ *
+ * @param site Site to which the themes will be applied.
+ */
+function selectThemes(site: Site): Promise<Site> {
+    return new Promise<Site>((resolve, _reject) => {
+        const themeFolder = Configuration.themeFolder;
+        getSubdirectories(themeFolder)
+        .then(filenames => filenames.map((filename) => sanitizeFilename(filename, Configuration.themeFolder)))
+        .then(folders => {
+            const questions = [
+                {
+                    type: 'checkbox',
+                    name: 'themes',
+                    choices: folders,
+                    message: 'Which themes would you like to apply?',
+                    default: site.themes
+                }
+            ];
+
+            prompt(questions).then((answers: { themes: string[] }) => {
+                return {
+                    ...site,
+                    themes: answers.themes
+                };
+            })
+            .then(applyThemes)
+            .then(site => resolve(site));
+        })
     });
 }
 
@@ -842,12 +859,8 @@ function manageSiteTop(site: Site): Promise<Site> {
                 name: '[Reorder Sections]'
             },
             {
-                value: MenuChoice.CHANGE_DIVS as MenuValue,
-                name: '[Change Site-Level HTML]'
-            },
-            {
-                value: MenuChoice.CHANGE_CSS as MenuValue,
-                name: '[Change Site-Level CSS]'
+                value: MenuChoice.CHANGE_THEME as MenuValue,
+                name: '[Change Site Theme]'
             },
             {
                 value: MenuChoice.CANCEL as MenuValue,
@@ -864,11 +877,8 @@ function manageSiteTop(site: Site): Promise<Site> {
         } else if (chosenSection === MenuChoice.CHANGE_ORDER) {
             return reorderSections(site)
                 .then(manageSiteTop);
-        } else if (chosenSection === MenuChoice.CHANGE_DIVS) {
-            return applySiteDivs(site)
-                .then(manageSiteTop);
-        } else if (chosenSection === MenuChoice.CHANGE_CSS) {
-            return applySiteCSS(site)
+        } else if (chosenSection === MenuChoice.CHANGE_THEME) {
+            return selectThemes(site)
                 .then(manageSiteTop);
         } else if (chosenSection === MenuChoice.CANCEL) {
             return site;
