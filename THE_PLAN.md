@@ -28,6 +28,9 @@
   - If we do `npm run start` or `npm run build` from lunchlady, maybe we can make it part of compilation.
   - Could create a script called `lunchlady retheme` or something.
 
+# Known Issues
+- Creating a new section does not add it to the section order.
+
 # Releases
 
 ## v0.3.0
