@@ -18,12 +18,29 @@
 - Ability to preview an entry using html-to-text: https://www.npmjs.com/package/html-to-text
 - Make a manual sort inquirer plugin.
 - Hide sections with no content.
+- Themes repo from which you can download themes.
+- Menu option to create a skeleton theme.
 
 # Open Questions
 - Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
+- In order to update the content of the themes, the site needs to be re-saved in lunchlady.
+  - If we do `npm run start` or `npm run build` from lunchlady, maybe we can make it part of compilation.
+  - Could create a script called `lunchlady retheme` or something.
+
+# Known Issues
+- Creating a new section does not add it to the section order.
 
 # Releases
+
+## v0.3.0
+Themes
+
+### Features
+- Themes are applied via a folder containing all the relevant CSS and HTML.
+
+### Bugs Fixed
+- Fixed issue where renaming a section would not update the keys everywhere they appeared, causing reorder-sections to error out.
 
 ## v0.2.0
 Multi-page sites.

@@ -1,13 +1,17 @@
 # lunchlady
 A stupid-simple backend-less CMS built on NodeJS.
 
-## How to Use
+## How to Set Up
 1. Install Lunchlady via NPM `npm install -g lunchlady`.
    1. OR: sync to this repo and run `npm install && tsc && npm link`, which will point the `lunchlady` command to your locally-compiled version.
-2. Create a blog entry as an HTML file and place it in the directory that will become the directory for your blog.  Can be anywhere on your machine.
-3. Navigate to the directory where you want the `sloppy-joe` (blog client code) directory to be created.
-4. Run `lunchlady setup` and provide the path to that directory.
-   1. This will pull in the `sloppy-joe` repository and symlink your content folder into it.
-5. Navigate into the `sloppy-joe` folder created by `lunchlady setup` and run `npm install`.
-6. Run `lunchlady add` to add your HTML file as a blog entry.
-7. To start your local blog server, from the `sloppy-joe` folder, run `npm run start`.
+2. Run `lunchlady` and select `Initialize Blog`
+   1. Lunchlady will retrieve the `sloppy-joe` repo and prompt you to give your site a title.
+3. Back out, and your site will automatically be saved.
+4. Run `npm install` to retrieve all the npm dependencies for `sloppy-joe`
+5. To start your local blog server, from the `sloppy-joe` folder, run `npm run start`.
+
+## How to add an entry.
+1. Create a blog entry as an HTML file and place it in the `public/content` folder, where you'll find `dummy-entry.html` currently place-holding for your blog.
+2. Run `lunchlady` and select `Manage Content`
+3. Select or create a new section.
+4. Select `New Article`
