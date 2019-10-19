@@ -19,6 +19,9 @@
 - Make a manual sort inquirer plugin.
 - Hide sections with no content.
 
+# Known Issues
+- New sections may not get added to the ordered list.
+
 # Open Questions
 - Does immutability really matter in this case?  It's kind of a pain, and not really necessary unless we plan to have some sort of undo functionality.
   - If so, then immutability should be enforced, at least in certain builds.
